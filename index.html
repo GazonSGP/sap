@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <title>SAP Инструкции – Публичная страница</title>
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+<header>
+  <div><strong>SAP Инструкции</strong> – просмотр</div>
+  <a href="https://github.com/GazonSGP/sap" style="color:#e5e7eb; text-decoration:none;" target="_blank">
+    Репозиторий GitHub
+  </a>
+</header>
+<main>
+  <section class="card">
+    <h2>Поиск инструкций</h2>
+    <div style="display:flex; gap:8px; flex-wrap:wrap;">
+      <input id="searchInput" placeholder="Поиск по названию, транзакции или описанию" />
+      <select id="moduleFilter" style="max-width:220px;">
+        <option value="">Все модули</option>
+      </select>
+      <button id="reloadBtn" type="button">Обновить</button>
+    </div>
+  </section>
+
+  <section id="emptyState" class="card" style="display:none;">
+    <h3>Пока нет ни одной инструкции</h3>
+    <p>Добавьте модули и инструкции, отредактировав файлы <code>docs/data/*.json</code> в репозитории.</p>
+  </section>
+
+  <section id="instructionsSection" class="list"></section>
+</main>
+
+<!-- Модальное окно для просмотра инструкции -->
+<div id="instructionModalBackdrop" class="modal-backdrop" style="display:none;">
+  <div class="modal-window">
+    <div class="modal-header">
+      <h2 id="modalTitle"></h2>
+      <button id="modalCloseBtn" class="secondary" type="button">Закрыть</button>
+    </div>
+    <div class="modal-body">
+      <p><strong>Транзакция:</strong> <span id="modalTransaction"></span></p>
+      <div id="modalSteps"></div>
+      <div id="modalNotes"></div>
+      <div id="modalMedia" class="modal-media"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Лайтбокс для увеличения картинок -->
+<div id="imageLightbox" class="image-lightbox" style="display:none;">
+  <div class="image-lightbox-inner">
+    <img id="lightboxImg" src="" alt="">
+  </div>
+</div>
+
+<script src="js/public.js"></script>
+</body>
+</html>
