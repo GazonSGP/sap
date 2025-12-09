@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <title>Административная панель</title>
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+<header>
+  <div><strong>Админ-панель</strong> – управление модулями и инструкциями</div>
+  <button id="logoutBtn" class="secondary" type="button">Выйти</button>
+</header>
+<main>
+  <section class="card">
+    <h2>Модули</h2>
+    <form id="moduleForm">
+      <input type="hidden" name="id" />
+      <label>Код модуля (например, FI)</label>
+      <input name="code" required />
+      <label>Название модуля</label>
+      <input name="name" required />
+      <button type="submit">Сохранить модуль</button>
+    </form>
+    <div id="modulesList" class="list" style="margin-top:12px;"></div>
+  </section>
+
+  <section class="card">
+    <h2>Инструкции</h2>
+    <form id="instructionForm">
+      <input type="hidden" name="id" />
+      <label>Заголовок</label>
+      <input name="title" required />
+      <label>Модуль</label>
+      <select name="moduleId" required></select>
+      <label>Код транзакции (опционально)</label>
+      <input name="transactionCode" />
+      <label>Шаги (каждый с новой строки)</label>
+      <textarea name="steps" rows="4" placeholder="Шаг 1&#10;Шаг 2"></textarea>
+      <label>Примечания</label>
+      <textarea name="notes" rows="3"></textarea>
+
+      <h3>Медиа</h3>
+      <div id="mediaUploadForm">
+        <input type="file" id="mediaFileInput" accept="image/*,video/*" />
+        <button type="button" id="mediaUploadBtn">Загрузить файл</button>
+      </div>
+      <div id="mediaPreview" style="margin-top:8px;"></div>
+
+      <button type="submit" style="margin-top:12px;">Сохранить инструкцию</button>
+    </form>
+
+    <div id="instructionsList" class="list" style="margin-top:16px;"></div>
+  </section>
+</main>
+<script src="js/auth.js"></script>
+<script src="js/admin.js"></script>
+</body>
+</html>

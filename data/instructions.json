@@ -1,0 +1,20 @@
+[
+  {
+    "id": "1765269933718",
+    "title": "Экотекстиль Отгрузка КМ",
+    "moduleId": "1765266567485",
+    "transactionCode": "https://i.datamark.by/",
+    "steps": [
+      "Отчет о маркировке / Давальческий договор / Выбор файла с кодами / отправить"
+    ],
+    "notes": "Файл должен быть в формате .txt с кодировкой UTF-8/\n0104610050961570215?0u7fnYBQoL;\u001d9100C4\u001d92PFbvha02yD8XGYuHzW7hC1VCOcNzuR2hupk/J77p6fBZ6LcUCI6o3sFufTsj8s3+mZ8TrPCjbcbUpTVVCalulA==",
+    "media": [
+      {
+        "type": "image",
+        "url": "/uploads/images/1765269931792-218483602.png"
+      }
+    ],
+    "createdAt": "2025-12-09T08:45:33.718Z",
+    "updatedAt": "2025-12-09T08:45:33.718Z"
+  }
+]
