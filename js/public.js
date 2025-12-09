@@ -1,6 +1,8 @@
+// Кэш модулей и инструкций
 let modulesCache = [];
 let instructionsCache = [];
 
+// ===== ЗАГРУЗКА МОДУЛЕЙ =====
 async function loadModulesPublic() {
   const res = await fetch('data/modules.json');
   modulesCache = await res.json();
@@ -15,6 +17,7 @@ async function loadModulesPublic() {
   });
 }
 
+// ===== ЗАГРУЗКА ИНСТРУКЦИЙ =====
 async function loadInstructionsPublic() {
   const res = await fetch('data/instructions.json');
   instructionsCache = await res.json();
@@ -53,6 +56,7 @@ async function loadInstructionsPublic() {
     card.className = 'card instruction-card';
     card.dataset.id = inst.id;
 
+    // краткие шаги (без нумерации от <ol>)
     const stepsShort = (inst.steps || []).slice(0, 3)
       .map((s, idx) => `<li>Шаг ${idx + 1}: ${s}</li>`).join('');
     const hasMoreSteps = (inst.steps || []).length > 3;
@@ -64,7 +68,13 @@ async function loadInstructionsPublic() {
     card.innerHTML = `
       <h3>${inst.title}</h3>
       <p><strong>Транзакция:</strong> ${inst.transactionCode || '-'}</p>
-      ${stepsShort ? `<ol>${stepsShort}${hasMoreSteps ? '<li>...</li>' : ''}</ol>` : '<p>Шаги не указаны</p>'}
+      ${
+        stepsShort
+          ? `<ul style="list-style:none; padding-left:0; margin:0;">
+               ${stepsShort}${hasMoreSteps ? '<li>...</li>' : ''}
+             </ul>`
+          : '<p>Шаги не указаны</p>'
+      }
       ${notesShort ? `<p><strong>Примечания:</strong> ${notesShort}</p>` : ''}
       <p style="margin-top:8px; font-size:13px; color:#6b7280;">Нажмите, чтобы открыть полную инструкцию</p>
     `;
@@ -73,7 +83,6 @@ async function loadInstructionsPublic() {
 }
 
 // ---------- МОДАЛКА ИНСТРУКЦИИ ----------
-
 function openInstructionModal(inst) {
   const backdrop = document.getElementById('instructionModalBackdrop');
   const titleEl = document.getElementById('modalTitle');
@@ -86,8 +95,15 @@ function openInstructionModal(inst) {
   txEl.textContent = inst.transactionCode || '-';
 
   if (inst.steps && inst.steps.length) {
-    const stepsHtml = inst.steps.map((s, idx) => `<li>Шаг ${idx + 1}: ${s}</li>`).join('');
-    stepsEl.innerHTML = `<h3>Шаги</h3><ol>${stepsHtml}</ol>`;
+    const stepsHtml = inst.steps
+      .map((s, idx) => `<li>Шаг ${idx + 1}: ${s}</li>`)
+      .join('');
+    stepsEl.innerHTML = `
+      <h3>Шаги</h3>
+      <ul style="list-style:none; padding-left:0; margin-top:4px;">
+        ${stepsHtml}
+      </ul>
+    `;
   } else {
     stepsEl.innerHTML = '<p><em>Шаги не указаны</em></p>';
   }
@@ -105,11 +121,13 @@ function openInstructionModal(inst) {
       el = document.createElement('img');
       el.src = m.url;
       el.style.cursor = 'zoom-in';
+      el.className = 'media-thumb';
       el.addEventListener('click', () => openImageLightbox(m.url));
     } else {
       el = document.createElement('video');
       el.src = m.url;
       el.controls = true;
+      el.className = 'media-thumb';
     }
     mediaEl.appendChild(el);
   });
@@ -123,7 +141,6 @@ function closeInstructionModal() {
 }
 
 // ---------- ЛАЙТБОКС ДЛЯ КАРТИНОК ----------
-
 function openImageLightbox(src) {
   const lb = document.getElementById('imageLightbox');
   const img = document.getElementById('lightboxImg');
@@ -152,7 +169,6 @@ document.addEventListener('keydown', (e) => {
 });
 
 // ---------- СЛУШАТЕЛИ ----------
-
 document.getElementById('reloadBtn').addEventListener('click', () => {
   loadInstructionsPublic();
 });
@@ -185,7 +201,7 @@ document.getElementById('instructionModalBackdrop').addEventListener('click', (e
   }
 });
 
-// init
+// ===== INIT =====
 (async function init() {
   await loadModulesPublic();
   await loadInstructionsPublic();
