@@ -56,9 +56,12 @@ async function loadInstructionsPublic() {
     card.className = 'card instruction-card';
     card.dataset.id = inst.id;
 
-    // краткие шаги (без нумерации от <ol>)
-    const stepsShort = (inst.steps || []).slice(0, 3)
-      .map((s, idx) => `<li>Шаг ${idx + 1}: ${s}</li>`).join('');
+    // краткие шаги — без списков, просто текст
+    const stepsShort = (inst.steps || [])
+      .slice(0, 3)
+      .map((s, idx) => `Шаг ${idx + 1}: ${s}`)
+      .join('<br>');
+
     const hasMoreSteps = (inst.steps || []).length > 3;
 
     const notesShort = inst.notes
@@ -70,9 +73,7 @@ async function loadInstructionsPublic() {
       <p><strong>Транзакция:</strong> ${inst.transactionCode || '-'}</p>
       ${
         stepsShort
-          ? `<ul style="list-style:none; padding-left:0; margin:0;">
-               ${stepsShort}${hasMoreSteps ? '<li>...</li>' : ''}
-             </ul>`
+          ? `<p>${stepsShort}${hasMoreSteps ? '<br>...</br>' : ''}</p>`
           : '<p>Шаги не указаны</p>'
       }
       ${notesShort ? `<p><strong>Примечания:</strong> ${notesShort}</p>` : ''}
@@ -94,15 +95,14 @@ function openInstructionModal(inst) {
   titleEl.textContent = inst.title || 'Инструкция';
   txEl.textContent = inst.transactionCode || '-';
 
+  // ПОЛНЫЕ шаги — тоже без списков
   if (inst.steps && inst.steps.length) {
     const stepsHtml = inst.steps
-      .map((s, idx) => `<li>Шаг ${idx + 1}: ${s}</li>`)
+      .map((s, idx) => `<div>Шаг ${idx + 1}: ${s}</div>`)
       .join('');
     stepsEl.innerHTML = `
       <h3>Шаги</h3>
-      <ul style="list-style:none; padding-left:0; margin-top:4px;">
-        ${stepsHtml}
-      </ul>
+      <div style="margin-top:4px;">${stepsHtml}</div>
     `;
   } else {
     stepsEl.innerHTML = '<p><em>Шаги не указаны</em></p>';
