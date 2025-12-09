@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <title>Вход администратора</title>
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+<header>
+  <div><strong>Вход</strong> в административную панель</div>
+  <a href="index.html" style="color:#e5e7eb; text-decoration:none;">На главную</a>
+</header>
+<main>
+  <section class="card" style="max-width:420px;">
+    <h2>Авторизация</h2>
+    <p>Демо-доступ: логин <code>admin</code>, пароль <code>admin123</code></p>
+    <form id="loginForm">
+      <label>Логин</label>
+      <input name="username" required />
+      <label>Пароль</label>
+      <input type="password" name="password" required />
+      <button type="submit">Войти</button>
+    </form>
+    <p id="loginError" style="color:#dc2626; display:none;"></p>
+  </section>
+</main>
+<script src="js/auth.js"></script>
+</body>
+</html>
