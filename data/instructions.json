@@ -14,7 +14,6 @@
     "media": [
       {
         "type": "image",
-        "url": "uploads/images/1765269931792-218483602.png",
         "url": "uploads/images/1765269931792-218483602.png"
       }
     ],
@@ -86,13 +85,15 @@
     "media": [
       {
         "type": "image",
-        "url": "uploads/images/1765353645852-93059287.png"
+        "url": "uploads/images/1765353645852-93059287.png",
+        "url": "uploads/images/1765269931792-218483602.png"
       }
     ],
     "createdAt": "2025-12-10T08:00:50.501Z",
     "updatedAt": "2025-12-10T08:00:50.501Z"
   }
 ]
+
 
 
 
