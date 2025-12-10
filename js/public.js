@@ -1,3 +1,5 @@
+// docs/js/public.js — финальная версия с компактными цветными метками
+
 // Кэш модулей и инструкций
 let modulesCache = [];
 let instructionsCache = [];
@@ -19,29 +21,19 @@ function cropText(text, maxLength = 180) {
   return text.substring(0, maxLength) + '...';
 }
 
-// Простая детерминированная функция, которая по коду возвращает цвет из палитры
+// Детерминированный выбор цвета по коду/названию
 function getColorForModule(code) {
   const palette = [
-    '#0a6ed1', // синий
-    '#0b9f6b', // зелёный
-    '#f97316', // оранжевый
-    '#7c3aed', // фиолетовый
-    '#ef4444', // красный
-    '#06b6d4', // бирюзовый
-    '#f59e0b', // янтарный
-    '#10b981', // мята
-    '#6366f1', // индиго
-    '#db2777'  // розовый
+    '#0a6ed1', '#0b9f6b', '#f97316', '#7c3aed', '#ef4444',
+    '#06b6d4', '#f59e0b', '#10b981', '#6366f1', '#db2777'
   ];
   if (!code) return palette[0];
-  // хэшируем строку в число
   let h = 0;
   for (let i = 0; i < code.length; i++) {
     h = (h << 5) - h + code.charCodeAt(i);
     h |= 0;
   }
-  const idx = Math.abs(h) % palette.length;
-  return palette[idx];
+  return palette[Math.abs(h) % palette.length];
 }
 
 /* ===== ЗАГРУЗКА МОДУЛЕЙ ===== */
@@ -83,12 +75,12 @@ function renderInstructionGrid(listData) {
     card.className = 'card instruction-card';
     card.dataset.id = inst.id;
 
-    // Получаем модуль по id (если есть) и формируем Fiori-метку
+    // Получаем модуль по id (если есть) и формируем компактную цветную метку (только код)
     const moduleObj = modulesCache.find(m => m.id === inst.moduleId);
     const code = moduleObj && moduleObj.code ? moduleObj.code : '';
     const name = moduleObj && moduleObj.name ? moduleObj.name : (inst.moduleId || 'Без модуля');
 
-    // короткие шаги
+    // короткие шаги (ограниченные)
     const stepsShort = (inst.steps || [])
       .slice(0, 3)
       .map((s, idx) => `Шаг ${idx + 1}: ${escapeHtml(s)}`)
@@ -97,16 +89,17 @@ function renderInstructionGrid(listData) {
     const hasMoreSteps = (inst.steps || []).length > 3;
     const notesShort = cropText(inst.notes || '', 180);
 
-    // Fiori-style badge: code in small box + name
+    // Цвет для кода
     const color = getColorForModule(code || name);
-    // badge кликабельный — добавляем data-module-id
+
+    // Сделаем только цветной квадрат с кодом; добавим title с полным именем модуля
+    // data-module-id используется для фильтра при клике; title показывает название по наведению
     const badgeHtml = code
-      ? `<span class="fiori-badge clickable" data-module-id="${escapeHtml(inst.moduleId)}">
+      ? `<span class="fiori-badge clickable" data-module-id="${escapeHtml(inst.moduleId)}" title="${escapeHtml(name)}">
            <span class="fiori-badge-code" style="background:${color}">${escapeHtml(code)}</span>
-           <span class="fiori-badge-name">${escapeHtml(name)}</span>
          </span>`
-      : `<span class="fiori-badge clickable" data-module-id="${escapeHtml(inst.moduleId)}">
-           <span class="fiori-badge-name">${escapeHtml(name)}</span>
+      : `<span class="fiori-badge clickable" data-module-id="${escapeHtml(inst.moduleId)}" title="${escapeHtml(name)}">
+           <span class="fiori-badge-code" style="background:${color}">${escapeHtml((name && name[0]) || '')}</span>
          </span>`;
 
     card.innerHTML = `
@@ -118,10 +111,26 @@ function renderInstructionGrid(listData) {
         ${notesShort ? `<p><strong>Примечания:</strong> ${escapeHtml(notesShort)}</p>` : ''}
       </div>
       <div class="footer" style="margin-top:8px; display:flex; gap:8px; align-items:center;">
-        <button type="button" class="secondary open-instruction" data-id="${inst.id}">Увидеть больше</button>
+        <button type="button" class="secondary open-instruction" data-id="${escapeHtml(inst.id)}">Увидеть больше</button>
       </div>
     `;
     list.appendChild(card);
+  });
+
+  // После рендера обновим подсветку активной метки (если фильтр активен)
+  updateActiveBadges();
+}
+
+/* Пометка активных меток (подсветка) */
+function updateActiveBadges() {
+  const selectedModule = document.getElementById('moduleFilter')?.value || '';
+  document.querySelectorAll('.fiori-badge').forEach(b => {
+    const mid = b.dataset.moduleId || '';
+    if (!selectedModule) {
+      b.classList.remove('active');
+    } else {
+      b.classList.toggle('active', mid === selectedModule);
+    }
   });
 }
 
@@ -204,6 +213,7 @@ function openInstructionModal(inst) {
   backdrop.style.display = 'flex';
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
+
 function closeInstructionModal() {
   const backdrop = document.getElementById('instructionModalBackdrop');
   backdrop.style.display = 'none';
@@ -257,7 +267,10 @@ document.getElementById('searchInput')?.addEventListener('keyup', (e) => {
 });
 
 // Фильтр
-document.getElementById('moduleFilter')?.addEventListener('change', () => loadInstructionsPublic());
+document.getElementById('moduleFilter')?.addEventListener('change', () => {
+  loadInstructionsPublic();
+  updateActiveBadges();
+});
 
 // Обработчик кликов по секции инструкций:
 // - клик по .fiori-badge -> устанавливаем фильтр по модулю
@@ -272,6 +285,7 @@ document.getElementById('instructionsSection')?.addEventListener('click', (e) =>
     const moduleFilter = document.getElementById('moduleFilter');
     moduleFilter.value = moduleId;
     loadInstructionsPublic();
+    updateActiveBadges();
     // плавно прокрутить к началу
     const main = document.querySelector('main');
     if (main) {
@@ -316,4 +330,7 @@ document.getElementById('instructionModalBackdrop')?.addEventListener('click', (
     const inst = instructionsCache.find(i => i.id === instId);
     if (inst) setTimeout(() => openInstructionModal(inst), 300);
   }
+
+  // пометить активные бейджи если фильтр уже выставлен
+  updateActiveBadges();
 })();
