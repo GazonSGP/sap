@@ -1,467 +1,129 @@
-// docs/js/public.js — Полная версия с двухколоночной модалкой (текст слева, медиа справа)
-// Включает: загрузку данных, рендер карточек, компактные Fiori-метки, модалка two-column,
-// корректный перенос в примечаниях, скрытие стрелок если медиа <= 1, лайтбокс.
+/* docs/css/styles.css — SAP Fiori-like + two-column modal + фиксы переноса */
 
-// --------- КЭШИ ---------
-let modulesCache = [];
-let instructionsCache = [];
-
-// --------- HELPERS ---------
-function escapeHtml(str) {
-  if (str === null || str === undefined) return '';
-  return String(str)
-    .replaceAll('&', '&amp;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;')
-    .replaceAll('"', '&quot;')
-    .replaceAll("'", '&#039;');
+/* =========== Токены =========== */
+:root{
+  --bg: #f5f7f9;
+  --shell: #0a6ed1;
+  --shell-text: #ffffff;
+  --card-bg: #ffffff;
+  --muted: #6b7176;
+  --text: #222428;
+  --border: #e6eaee;
+  --border-strong: #c9d1d8;
+  --accent: #0a6ed1;
+  --accent-soft: rgba(10,110,209,0.08);
+  --danger: #d03b2f;
+  --card-height: 240px;
+  --radius: 10px;
+  --focus-ring: rgba(10,110,209,0.18);
+  --shadow-soft: 0 6px 18px rgba(16,24,40,0.06);
+  --shadow-strong: 0 12px 36px rgba(16,24,40,0.12);
 }
 
-function cropText(text, maxLength = 180) {
-  if (!text) return '';
-  if (text.length <= maxLength) return text;
-  return text.substring(0, maxLength) + '...';
+/* =========== База =========== */
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0;
+  font-family:"Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+  background:var(--bg);
+  color:var(--text);
+  -webkit-font-smoothing:antialiased;
+  -moz-osx-font-smoothing:grayscale;
+  line-height:1.35;
 }
 
-function getColorForModule(code) {
-  const palette = [
-    '#0a6ed1', '#0b9f6b', '#f97316', '#7c3aed', '#ef4444',
-    '#06b6d4', '#f59e0b', '#10b981', '#6366f1', '#db2777'
-  ];
-  if (!code) return palette[0];
-  let h = 0;
-  for (let i = 0; i < code.length; i++) {
-    h = (h << 5) - h + code.charCodeAt(i);
-    h |= 0;
-  }
-  return palette[Math.abs(h) % palette.length];
+/* Header */
+header{ display:flex; justify-content:space-between; align-items:center; gap:12px; padding:12px 20px; background:var(--shell); color:var(--shell-text); }
+header .brand{ font-weight:700; letter-spacing:.01em }
+header a{ text-decoration:none; color:var(--shell-text); background: rgba(255,255,255,0.1); padding:6px 10px; border-radius:6px; font-size:13px }
+
+/* Container */
+main{ max-width:1200px; margin:18px auto; padding:14px 18px 40px; }
+
+/* Card */
+.card{ background:var(--card-bg); border-radius:var(--radius); border:1px solid var(--border); padding:14px 16px; margin-bottom:12px; box-shadow:var(--shadow-soft); }
+.card h2, .card h3 { margin:0 0 8px 0; font-size:15px; font-weight:600; }
+.card p{ margin:6px 0; color:var(--muted); font-size:13px; }
+
+/* Controls */
+.controls{ display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:6px; }
+input[type="text"], select{ min-width:200px; padding:8px 10px; border-radius:8px; border:1px solid var(--border); background:#fff; color:var(--text); outline:none; font-size:13px }
+input:focus, select:focus{ box-shadow: 0 0 0 4px var(--focus-ring); border-color:var(--accent) }
+button{ padding:8px 14px; border-radius:8px; border:none; background:var(--accent); color:#fff; cursor:pointer; font-weight:700 }
+button.secondary{ background:#fff; color:var(--text); border:1px solid var(--border) }
+button.danger{ background:var(--danger); color:#fff }
+
+/* Grid */
+.list{ display:grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap:12px; }
+
+/* Instruction card */
+.instruction-card{
+  position:relative; height:var(--card-height); overflow:hidden; display:flex; flex-direction:column; gap:8px;
+  padding:12px; cursor:pointer; transition: transform .12s ease, box-shadow .12s ease, border-color .12s ease;
+  border-radius:8px; border:1px solid var(--border); background: linear-gradient(180deg, var(--card-bg), #fbfcfd);
+}
+.instruction-card:hover{ transform: translateY(-4px); box-shadow: var(--shadow-strong); border-color:var(--border-strong) }
+.instruction-card .meta { font-size:13px; color:var(--muted); margin-bottom:4px; }
+.instruction-card .content{ flex:1 1 auto; overflow:hidden; font-size:13px; color:var(--muted) }
+.instruction-card .content p{ margin:4px 0; display:-webkit-box; -webkit-line-clamp:8; -webkit-box-orient:vertical; overflow:hidden; text-overflow:ellipsis; }
+.instruction-card .footer{ font-size:13px; color:var(--muted) }
+
+/* Fiori badge (compact square) */
+.fiori-badge{ display:inline-flex; align-items:center; gap:8px; user-select:none }
+.fiori-badge.clickable{ cursor:pointer }
+.fiori-badge-code{
+  display:inline-flex; align-items:center; justify-content:center;
+  min-width:36px; height:24px; padding:0 6px; color:#fff; border-radius:6px; font-weight:700; font-size:12px;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.08); transition: transform .12s ease, filter .12s ease;
+}
+.fiori-badge.active .fiori-badge-code{ box-shadow: 0 8px 26px rgba(0,0,0,0.12); outline: 3px solid rgba(10,110,209,0.12); transform: translateY(-2px) }
+.instruction-card .fiori-badge.active{ border-radius:8px; padding:4px; background:rgba(10,110,209,0.04) }
+
+/* =========== МОДАЛКА =========== */
+.modal-backdrop{ position:fixed; inset:0; background:rgba(15,23,42,0.45); display:none; justify-content:center; align-items:center; z-index:60 }
+.modal-window{
+  width:100%; max-width:1100px; max-height:90vh; background:var(--card-bg); border-radius:10px; padding:14px; border:1px solid var(--border); box-shadow:var(--shadow-strong);
+  display:grid; grid-template-columns: 1fr 360px; gap:18px;
+}
+.modal-header{ grid-column: 1 / -1; display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:6px }
+.modal-left{ overflow-y:auto; max-height:70vh; padding-right:6px }
+.modal-right{ display:flex; flex-direction:column; gap:10px; max-height:70vh; overflow:hidden }
+
+/* main media + thumbs + controls */
+.modal-main-media{ flex:0 0 58%; border-radius:8px; overflow:hidden; background:#f7fafc; display:flex; align-items:center; justify-content:center }
+.modal-main-media img, .modal-main-media video{ width:100%; height:100%; object-fit:contain }
+.modal-thumbs{ flex:1 1 auto; overflow-y:auto; display:flex; flex-direction:column; gap:8px; padding-right:6px; min-height:72px }
+.modal-thumbs .thumb{ height:72px; border-radius:6px; overflow:hidden; cursor:pointer; border:2px solid transparent; display:flex; align-items:center; justify-content:center; background:#fff }
+.modal-thumbs .thumb img, .modal-thumbs .thumb video{ max-width:100%; max-height:100%; object-fit:cover }
+.modal-thumbs .thumb.active{ border-color: rgba(10,110,209,0.9); box-shadow: 0 6px 18px rgba(10,110,209,0.12) }
+
+/* step style */
+.steps-block .step{ background: #f3f7fb; padding:10px 12px; border-radius:8px; margin-bottom:8px; border:1px solid rgba(10,110,209,0.04) }
+
+/* notes: перенос и ограничение */
+.modal-notes{
+  background:#ffffff; border-radius:8px; padding:10px; border:1px solid var(--border); margin-top:8px; color:var(--text);
+  white-space: pre-wrap; word-break: break-word; overflow-wrap: anywhere; overflow:auto; max-width:100%;
 }
 
-// --------- ЗАГРУЗКА modules.json ---------
-async function loadModulesPublic() {
-  try {
-    const res = await fetch('data/modules.json');
-    modulesCache = await res.json();
-  } catch (err) {
-    console.error('Ошибка загрузки modules.json', err);
-    modulesCache = [];
-  }
+/* controls row: скрываем через класс hidden */
+.media-controls{ display:flex; gap:8px; align-items:center; justify-content:space-between; margin-top:6px }
+.media-controls.hidden{ display:none !important }
 
-  const select = document.getElementById('moduleFilter');
-  if (!select) return;
-  select.innerHTML = '<option value="">Все модули</option>';
-  modulesCache.forEach(m => {
-    const opt = document.createElement('option');
-    opt.value = m.id;
-    opt.textContent = `${m.code || ''} – ${m.name || ''}`.trim();
-    select.appendChild(opt);
-  });
+/* responsive */
+@media (max-width:780px){
+  .modal-window{ grid-template-columns: 1fr; max-width:96% }
+  .modal-left{ max-height:none } .modal-right{ order:2; max-height:none }
+  .modal-main-media{ flex:0 0 auto; height:220px }
+  .modal-thumbs{ flex-direction:row; overflow-x:auto; gap:6px; height:84px }
+  .modal-thumbs .thumb{ width:120px; height:72px; flex:0 0 auto }
 }
 
-// --------- РЕНДЕР СЕТКИ ИНСТРУКЦИЙ ---------
-function renderInstructionGrid(listData) {
-  const list = document.getElementById('instructionsSection');
-  const empty = document.getElementById('emptyState');
+/* Lightbox */
+.image-lightbox{ position:fixed; inset:0; display:flex; justify-content:center; align-items:center; background:rgba(15,23,42,0.75); z-index:80 }
+.image-lightbox-inner{ max-width:95vw; max-height:95vh }
+.image-lightbox-inner img{ max-width:100%; max-height:95vh; border-radius:12px; box-shadow:0 20px 40px rgba(0,0,0,0.6) }
 
-  list.innerHTML = '';
-
-  if (!listData || !listData.length) {
-    if (empty) empty.style.display = 'block';
-    return;
-  }
-  if (empty) empty.style.display = 'none';
-
-  listData.forEach(inst => {
-    const card = document.createElement('div');
-    card.className = 'card instruction-card';
-    card.dataset.id = inst.id;
-
-    const moduleObj = modulesCache.find(m => m.id === inst.moduleId);
-    const code = moduleObj && moduleObj.code ? moduleObj.code : '';
-    const name = moduleObj && moduleObj.name ? moduleObj.name : (inst.moduleId || 'Без модуля');
-
-    const stepsShort = (inst.steps || [])
-      .slice(0, 3)
-      .map((s, idx) => `Шаг ${idx + 1}: ${escapeHtml(s)}`)
-      .join('<br>');
-
-    const hasMoreSteps = (inst.steps || []).length > 3;
-    const notesShort = cropText(inst.notes || '', 180);
-
-    const color = getColorForModule(code || name);
-
-    const badgeHtml = code
-      ? `<span class="fiori-badge clickable" data-module-id="${escapeHtml(inst.moduleId)}" title="${escapeHtml(name)}">
-           <span class="fiori-badge-code" style="background:${color}">${escapeHtml(code)}</span>
-         </span>`
-      : `<span class="fiori-badge clickable" data-module-id="${escapeHtml(inst.moduleId)}" title="${escapeHtml(name)}">
-           <span class="fiori-badge-code" style="background:${color}">${escapeHtml((name && name[0]) || '')}</span>
-         </span>`;
-
-    card.innerHTML = `
-      <div class="meta">${badgeHtml}</div>
-      <h3>${escapeHtml(inst.title || 'Без названия')}</h3>
-      <p class="meta"><strong>Транзакция:</strong> ${escapeHtml(inst.transactionCode || '-')}</p>
-      <div class="content">
-        ${stepsShort ? `<p>${stepsShort}${hasMoreSteps ? '<br>...' : ''}</p>` : '<p>Шаги не указаны</p>'}
-        ${notesShort ? `<p><strong>Примечания:</strong> ${escapeHtml(notesShort)}</p>` : ''}
-      </div>
-      <div class="footer" style="margin-top:8px; display:flex; gap:8px; align-items:center;">
-        <button type="button" class="secondary open-instruction" data-id="${escapeHtml(inst.id)}">Увидеть больше</button>
-      </div>
-    `;
-    list.appendChild(card);
-  });
-
-  updateActiveBadges();
-}
-
-function updateActiveBadges() {
-  const selectedModule = document.getElementById('moduleFilter')?.value || '';
-  document.querySelectorAll('.fiori-badge').forEach(b => {
-    const mid = b.dataset.moduleId || '';
-    if (!selectedModule) {
-      b.classList.remove('active');
-    } else {
-      b.classList.toggle('active', mid === selectedModule);
-    }
-  });
-}
-
-// --------- ЗАГРУЗКА instructions.json ---------
-async function loadInstructionsPublic() {
-  try {
-    const res = await fetch('data/instructions.json');
-    instructionsCache = await res.json();
-  } catch (err) {
-    console.error('Ошибка загрузки instructions.json', err);
-    instructionsCache = [];
-  }
-
-  const search = (document.getElementById('searchInput')?.value || '').trim().toLowerCase();
-  const moduleId = (document.getElementById('moduleFilter')?.value || '').trim();
-
-  let filtered = instructionsCache.slice();
-
-  if (moduleId) {
-    filtered = filtered.filter(i => i.moduleId === moduleId);
-  }
-
-  if (search) {
-    filtered = filtered.filter(i => {
-      const inTitle = (i.title || '').toLowerCase().includes(search);
-      const inTx = (i.transactionCode || '').toLowerCase().includes(search);
-      const inNotes = (i.notes || '').toLowerCase().includes(search);
-      return inTitle || inTx || inNotes;
-    });
-  }
-
-  renderInstructionGrid(filtered);
-}
-
-// --------- МОДАЛКА (двухколоночная) ---------
-function openInstructionModal(inst) {
-  const backdrop = document.getElementById('instructionModalBackdrop');
-  if (!backdrop) return;
-  const modalWindow = backdrop.querySelector('.modal-window');
-
-  modalWindow.innerHTML = `
-    <div class="modal-header" role="banner">
-      <div style="display:flex; gap:12px; align-items:center;">
-        <div id="modalBadgePlaceholder"></div>
-        <h2 id="modalTitle" style="margin:0; font-size:18px;"></h2>
-      </div>
-      <div style="display:flex; gap:8px; align-items:center;">
-        <button id="modalCloseBtn" class="secondary" type="button">Закрыть</button>
-      </div>
-    </div>
-
-    <div class="modal-left" aria-live="polite" style="padding-right:6px;">
-      <p style="margin:6px 0; font-size:13px;"><strong>Транзакция:</strong> <span id="modalTransaction"></span></p>
-      <div id="modalSteps"></div>
-      <div id="modalNotes"></div>
-    </div>
-
-    <div id="modalMedia" class="modal-right" aria-hidden="false"></div>
-  `;
-
-  const titleEl = modalWindow.querySelector('#modalTitle');
-  const txEl = modalWindow.querySelector('#modalTransaction');
-  const stepsEl = modalWindow.querySelector('#modalSteps');
-  const notesEl = modalWindow.querySelector('#modalNotes');
-  const mediaContainer = modalWindow.querySelector('#modalMedia');
-  const badgePlaceholder = modalWindow.querySelector('#modalBadgePlaceholder');
-  const closeBtn = modalWindow.querySelector('#modalCloseBtn');
-
-  titleEl.textContent = inst.title || 'Инструкция';
-  txEl.textContent = inst.transactionCode || '-';
-
-  const moduleObj = modulesCache.find(m => m.id === inst.moduleId);
-  const code = moduleObj && moduleObj.code ? moduleObj.code : '';
-  const name = moduleObj && moduleObj.name ? moduleObj.name : (inst.moduleId || 'Без модуля');
-  const color = getColorForModule(code || name);
-  const badgeHtml = code
-    ? `<span class="fiori-badge" title="${escapeHtml(name)}"><span class="fiori-badge-code" style="background:${color}">${escapeHtml(code)}</span></span>`
-    : `<span class="fiori-badge" title="${escapeHtml(name)}"><span class="fiori-badge-code" style="background:${color}">${escapeHtml((name && name[0]) || '')}</span></span>`;
-  badgePlaceholder.innerHTML = badgeHtml;
-
-  if (inst.steps && inst.steps.length) {
-    const stepsHtml = inst.steps
-      .map((s, idx) => `<div class="step">Шаг ${idx + 1}: ${escapeHtml(s)}</div>`)
-      .join('');
-    stepsEl.innerHTML = `<h3>Шаги</h3><div class="steps-block">${stepsHtml}</div>`;
-  } else {
-    stepsEl.innerHTML = '<p><em>Шаги не указаны</em></p>';
-  }
-
-  if (inst.notes) {
-    notesEl.innerHTML = `<h3>Примечания</h3><div class="modal-notes">${escapeHtml(inst.notes)}</div>`;
-  } else {
-    notesEl.innerHTML = '';
-  }
-
-  mediaContainer.innerHTML = '';
-  const mainPreview = document.createElement('div');
-  mainPreview.className = 'modal-main-media';
-  const thumbsColumn = document.createElement('div');
-  thumbsColumn.className = 'modal-thumbs';
-  const controlsRow = document.createElement('div');
-  controlsRow.className = 'media-controls';
-
-  mediaContainer.appendChild(mainPreview);
-  mediaContainer.appendChild(thumbsColumn);
-  mediaContainer.appendChild(controlsRow);
-
-  const mediaList = Array.isArray(inst.media) ? inst.media.slice() : [];
-
-  if (!mediaList.length) {
-    mainPreview.innerHTML = '<div style="padding:18px;color:#6b7280">Нет медиа</div>';
-    controlsRow.classList.add('hidden');
-    thumbsColumn.innerHTML = '';
-    backdrop.style.display = 'flex';
-    closeBtn.addEventListener('click', closeInstructionModal);
-    return;
-  }
-
-  let currentIndex = 0;
-  function renderMain(idx) {
-    mainPreview.innerHTML = '';
-    const m = mediaList[idx];
-    if (m.type === 'image') {
-      const img = document.createElement('img');
-      img.src = m.url;
-      img.alt = inst.title || 'image';
-      img.style.cursor = 'zoom-in';
-      img.addEventListener('click', () => openImageLightbox(m.url));
-      mainPreview.appendChild(img);
-    } else {
-      const video = document.createElement('video');
-      video.src = m.url;
-      video.controls = true;
-      video.style.maxHeight = '100%';
-      mainPreview.appendChild(video);
-    }
-    thumbsColumn.querySelectorAll('.thumb').forEach((t, i) => {
-      t.classList.toggle('active', i === idx);
-    });
-    currentIndex = idx;
-  }
-
-  thumbsColumn.innerHTML = '';
-  mediaList.forEach((m, i) => {
-    const t = document.createElement('div');
-    t.className = 'thumb';
-    t.dataset.index = i;
-    if (m.type === 'image') {
-      const img = document.createElement('img');
-      img.src = m.url;
-      t.appendChild(img);
-    } else {
-      const vid = document.createElement('video');
-      vid.src = m.url;
-      vid.muted = true;
-      vid.loop = true;
-      vid.play().catch(()=>{/* ignore autoplay */});
-      t.appendChild(vid);
-    }
-    t.addEventListener('click', () => renderMain(i));
-    thumbsColumn.appendChild(t);
-  });
-
-  if (mediaList.length > 1) {
-    controlsRow.classList.remove('hidden');
-    controlsRow.innerHTML = `
-      <div style="display:flex;gap:8px;">
-        <button type="button" class="secondary modal-prev">◀</button>
-        <button type="button" class="secondary modal-next">▶</button>
-      </div>
-      <div style="display:flex;gap:8px;">
-        <button type="button" class="secondary modal-download">Скачать медиа</button>
-      </div>
-    `;
-
-    controlsRow.querySelector('.modal-prev').addEventListener('click', () => {
-      const next = (currentIndex - 1 + mediaList.length) % mediaList.length;
-      renderMain(next);
-    });
-    controlsRow.querySelector('.modal-next').addEventListener('click', () => {
-      const next = (currentIndex + 1) % mediaList.length;
-      renderMain(next);
-    });
-
-    controlsRow.querySelectorAll('.modal-download')?.forEach(el => {
-      el.addEventListener('click', () => {
-        mediaList.forEach(m => {
-          const a = document.createElement('a');
-          a.href = m.url;
-          a.download = m.url.split('/').pop();
-          a.target = '_blank';
-          document.body.appendChild(a);
-          a.click();
-          a.remove();
-        });
-      });
-    });
-  } else {
-    controlsRow.classList.add('hidden');
-    // отдельная кнопка загрузки для одного медиа
-    const dl = document.createElement('div');
-    dl.style.display = 'flex';
-    dl.style.justifyContent = 'flex-end';
-    dl.style.marginTop = '8px';
-    const btn = document.createElement('button');
-    btn.className = 'secondary modal-download';
-    btn.textContent = 'Скачать медиа';
-    btn.addEventListener('click', () => {
-      const m = mediaList[0];
-      const a = document.createElement('a');
-      a.href = m.url;
-      a.download = m.url.split('/').pop();
-      a.target = '_blank';
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-    });
-    dl.appendChild(btn);
-    mediaContainer.appendChild(dl);
-  }
-
-  renderMain(0);
-
-  backdrop.style.display = 'flex';
-  closeBtn.addEventListener('click', closeInstructionModal);
-
-  const left = modalWindow.querySelector('.modal-left');
-  if (left) left.scrollTop = 0;
-}
-
-// --------- Закрытие модалки ---------
-function closeInstructionModal() {
-  const backdrop = document.getElementById('instructionModalBackdrop');
-  if (!backdrop) return;
-  backdrop.style.display = 'none';
-}
-
-// --------- ЛАЙТБОКС ---------
-function openImageLightbox(src) {
-  const lb = document.getElementById('imageLightbox');
-  const img = document.getElementById('lightboxImg');
-  if (!lb || !img) return;
-  img.src = src;
-  lb.style.display = 'flex';
-}
-function closeImageLightbox() {
-  const lb = document.getElementById('imageLightbox');
-  const img = document.getElementById('lightboxImg');
-  if (!lb || !img) return;
-  img.src = '';
-  lb.style.display = 'none';
-}
-document.getElementById('imageLightbox')?.addEventListener('click', (e) => {
-  if (e.target.id === 'imageLightbox') closeImageLightbox();
-});
-document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape') {
-    closeInstructionModal();
-    closeImageLightbox();
-  }
-});
-
-// --------- СЛУШАТЕЛИ ---------
-document.getElementById('reloadBtn')?.addEventListener('click', async () => {
-  const searchInput = document.getElementById('searchInput');
-  const moduleFilter = document.getElementById('moduleFilter');
-  if (searchInput) searchInput.value = '';
-  if (moduleFilter) moduleFilter.value = '';
-
-  await loadModulesPublic();
-  await loadInstructionsPublic();
-
-  const main = document.querySelector('main');
-  if (main) {
-    const top = main.getBoundingClientRect().top + window.scrollY - 8;
-    window.scrollTo({ top, behavior: 'smooth' });
-  }
-});
-
-document.getElementById('searchInput')?.addEventListener('keyup', (e) => {
-  if (e.key === 'Enter') loadInstructionsPublic();
-});
-
-document.getElementById('moduleFilter')?.addEventListener('change', () => {
-  loadInstructionsPublic();
-  updateActiveBadges();
-});
-
-document.getElementById('instructionsSection')?.addEventListener('click', (e) => {
-  const badge = e.target.closest('.fiori-badge.clickable');
-  if (badge) {
-    const moduleId = badge.dataset.moduleId;
-    if (!moduleId) return;
-    const moduleFilter = document.getElementById('moduleFilter');
-    moduleFilter.value = moduleId;
-    loadInstructionsPublic();
-    updateActiveBadges();
-    const main = document.querySelector('main');
-    if (main) {
-      const top = main.getBoundingClientRect().top + window.scrollY - 8;
-      window.scrollTo({ top, behavior: 'smooth' });
-    }
-    return;
-  }
-
-  const btn = e.target.closest('.open-instruction');
-  if (btn) {
-    const id = btn.dataset.id;
-    const inst = instructionsCache.find(i => i.id === id);
-    if (!inst) { alert('Инструкция не найдена'); return; }
-    openInstructionModal(inst);
-    return;
-  }
-
-  const card = e.target.closest('.instruction-card');
-  if (!card) return;
-  const id = card.dataset.id;
-  const inst = instructionsCache.find(i => i.id === id);
-  if (!inst) return;
-  openInstructionModal(inst);
-});
-
-document.getElementById('instructionModalBackdrop')?.addEventListener('click', (e) => {
-  if (e.target.id === 'instructionModalBackdrop') closeInstructionModal();
-});
-
-// --------- INIT ---------
-(async function init() {
-  await loadModulesPublic();
-  await loadInstructionsPublic();
-
-  const params = new URLSearchParams(window.location.search);
-  const instId = params.get('inst');
-  if (instId) {
-    const inst = instructionsCache.find(i => i.id === instId);
-    if (inst) setTimeout(() => openInstructionModal(inst), 300);
-  }
-
-  updateActiveBadges();
-})();
+/* Utilities */
+.sr-only{ position:absolute!important; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0 }
