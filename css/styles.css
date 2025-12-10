@@ -180,6 +180,34 @@ button.danger{background:var(--sap-danger)}
   color:var(--sap-accent);
   background:var(--sap-accent-soft);
 }
+/* Fiori-style badge: [ CODE ] Name */
+.fiori-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+}
+
+.fiori-badge-code {
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-width:36px;
+  height:24px;
+  padding:0 8px;
+  background:var(--sap-accent);
+  color:#fff;
+  border-radius:6px;
+  font-weight:700;
+  font-size:12px;
+  box-shadow: 0 2px 6px rgba(10,110,209,0.18);
+}
+
+.fiori-badge-name {
+  color: var(--sap-text-subtle);
+  font-weight:600;
+  font-size:13px;
+}
 
 /* === Modal (instruction viewer) === */
 .modal-backdrop{
@@ -274,3 +302,4 @@ select, input{min-height:36px}
   .instruction-card{height:auto; min-height:180px}
   .instruction-card .content p{-webkit-line-clamp:6}
 }
+
