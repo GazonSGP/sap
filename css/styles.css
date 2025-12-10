@@ -1,304 +1,276 @@
-/* ===== БАЗА (фон, шрифты) ===== */
-:root {
+/* styles.css — SAP Fiori-like theme with compact instruction cards */
+
+/* === Root colors / tokens === */
+:root{
   --sap-bg: #f5f6f7;
   --sap-shell: #0a6ed1;
   --sap-shell-text: #ffffff;
   --sap-card-bg: #ffffff;
-  --sap-border: #d5d7da;
-  --sap-border-strong: #89919a;
-  --sap-text-main: #32363a;
-  --sap-text-subtle: #6a6d70;
+  --sap-border: #e0e3e6;
+  --sap-border-strong: #b6bcc2;
+  --sap-text-main: #222428;
+  --sap-text-subtle: #6b7176;
   --sap-accent: #0a6ed1;
-  --sap-accent-soft: #e5f0fa;
+  --sap-accent-soft: rgba(10,110,209,0.08);
   --sap-danger: #bb0000;
+  --card-height: 240px; /* adjust to taste: 220 / 240 / 280 */
 }
 
-* {
-  box-sizing: border-box;
+/* === Reset / base === */
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0;
+  font-family: "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+  background:var(--sap-bg);
+  color:var(--sap-text-main);
+  -webkit-font-smoothing:antialiased;
+  -moz-osx-font-smoothing:grayscale;
 }
 
-body {
-  font-family: "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
-  margin: 0;
-  padding: 0;
-  background: var(--sap-bg);
-  color: var(--sap-text-main);
+/* === Header (Fiori shell-like) === */
+header{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  padding:12px 20px;
+  background:var(--sap-shell);
+  color:var(--sap-shell-text);
+  gap:12px;
+}
+header .brand{font-weight:600;letter-spacing:.01em}
+header a{
+  color:var(--sap-shell-text);
+  text-decoration:none;
+  font-size:13px;
+  background:rgba(255,255,255,0.12);
+  padding:6px 10px;
+  border-radius:6px;
 }
 
-/* ===== ШАПКА как SAP Fiori shell bar ===== */
-header {
-  background: var(--sap-shell);
-  color: var(--sap-shell-text);
-  padding: 10px 20px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+/* === Main container === */
+main{
+  max-width:1200px;
+  margin:18px auto;
+  padding:12px 18px 36px;
 }
 
-header div {
-  font-weight: 600;
-  letter-spacing: 0.02em;
+/* === Cards (Fiori style) === */
+.card{
+  background:var(--sap-card-bg);
+  border-radius:10px;
+  border:1px solid var(--sap-border);
+  padding:14px 16px;
+  margin-bottom:12px;
+  box-shadow:0 1px 3px rgba(0,0,0,0.03);
+  color:var(--sap-text-main);
 }
 
-header a {
-  font-size: 13px;
-  padding: 6px 10px;
-  border-radius: 4px;
-  background: rgba(255, 255, 255, 0.16);
-  text-decoration: none;
+/* Titles */
+.card h2, .card h3{
+  margin:0 0 8px 0;
+  font-size:15px;
+  font-weight:600;
+  color:var(--sap-text-main);
 }
 
-/* ===== КОНТЕЙНЕР ===== */
-main {
-  padding: 16px 24px 24px;
-  max-width: 1200px;
-  margin: 0 auto;
+.card p{margin:6px 0; font-size:13px; color:var(--sap-text-subtle)}
+
+/* === Controls: search/filter row === */
+.controls{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+  align-items:center;
+}
+input[type="text"], select{
+  padding:8px 10px;
+  border-radius:6px;
+  border:1px solid var(--sap-border);
+  background:#fff;
+  font-size:13px;
+  color:var(--sap-text-main);
+  min-width:200px;
+}
+button{
+  padding:8px 14px;
+  border-radius:6px;
+  border:none;
+  background:var(--sap-accent);
+  color:#fff;
+  cursor:pointer;
+  font-weight:600;
+}
+button.secondary{
+  background:#fff;
+  color:var(--sap-text-main);
+  border:1px solid var(--sap-border);
+}
+button.danger{background:var(--sap-danger)}
+
+/* === Instruction cards list (grid) === */
+.list{
+  display:grid;
+  grid-template-columns:repeat(auto-fill, minmax(260px, 1fr));
+  gap:12px;
 }
 
-/* ===== КАРТОЧКИ (Fiori cards) ===== */
-.card {
-  background: var(--sap-card-bg);
-  border-radius: 0.5rem;
-  border: 1px solid var(--sap-border);
-  padding: 16px 18px;
-  margin-bottom: 12px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+/* Compact instruction tile */
+.instruction-card{
+  position:relative;
+  height:var(--card-height);
+  overflow:hidden;          /* hide overflow */
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+  padding:12px;
+  cursor:pointer;
+  transition: transform .12s ease, box-shadow .12s ease, border-color .12s ease;
+  border-radius:8px;
+  border:1px solid var(--sap-border);
+  background:linear-gradient(180deg, var(--sap-card-bg), #fbfcfd);
 }
 
-.card h2,
-.card h3 {
-  margin-top: 0;
-  margin-bottom: 6px;
-  font-size: 16px;
-  font-weight: 600;
+/* Hover/focus */
+.instruction-card:hover{
+  transform:translateY(-4px);
+  box-shadow:0 8px 22px rgba(0,0,0,0.09);
+  border-color:var(--sap-border-strong);
 }
 
-.card p {
-  margin: 4px 0;
-  font-size: 13px;
-  color: var(--sap-text-subtle);
+/* Tile content layout */
+.instruction-card .meta{
+  font-size:13px;
+  color:var(--sap-text-subtle);
+  margin-bottom:6px;
 }
 
-/* ===== СПИСОК ИНСТРУКЦИЙ (плитки) ===== */
-.list {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 10px;
+/* Text blocks inside tile must not expand container */
+.instruction-card .content{
+  flex:1 1 auto;
+  overflow:hidden;
+  font-size:13px;
+  color:var(--sap-text-subtle);
+  line-height:1.35;
 }
 
-.instruction-card {
-  cursor: pointer;
-  transition: box-shadow 0.15s ease, transform 0.1s ease, border-color 0.15s ease;
+/* Use truncated paragraphs for steps/notes */
+.instruction-card .content p{
+  margin:4px 0;
+  display:-webkit-box;
+  -webkit-line-clamp:8;      /* show up to X lines */
+  -webkit-box-orient:vertical;
+  overflow:hidden;
+  text-overflow:ellipsis;
 }
 
-.instruction-card:hover {
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
-  transform: translateY(-1px);
-  border-color: var(--sap-border-strong);
+/* Small helper text at bottom */
+.instruction-card .footer{
+  font-size:12px;
+  color:var(--sap-text-subtle);
 }
 
-.instruction-card h3 {
-  font-size: 15px;
-  margin-bottom: 6px;
-  color: var(--sap-text-main);
+/* Badge */
+.badge{
+  display:inline-flex;
+  align-items:center;
+  padding:4px 8px;
+  border-radius:999px;
+  font-size:12px;
+  color:var(--sap-accent);
+  background:var(--sap-accent-soft);
 }
 
-.instruction-card p {
-  font-size: 13px;
+/* === Modal (instruction viewer) === */
+.modal-backdrop{
+  position:fixed;
+  inset:0;
+  background:rgba(15,23,42,0.45);
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  z-index:60;
+}
+.modal-window{
+  width:100%;
+  max-width:760px;
+  max-height:90vh;
+  background:var(--sap-card-bg);
+  border-radius:10px;
+  padding:16px;
+  border:1px solid var(--sap-border);
+  box-shadow:0 12px 36px rgba(0,0,0,0.25);
+  display:flex;
+  flex-direction:column;
+}
+.modal-header{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px}
+.modal-header h2{margin:0;font-size:16px}
+.modal-body{overflow:auto;padding-right:6px;font-size:14px;color:var(--sap-text-main)}
+.modal-body h3{margin:10px 0 6px 0;font-size:14px}
+
+/* Steps block — stacked items */
+.steps-block .step{
+  margin-bottom:8px;
+  font-size:14px;
+  color:var(--sap-text-main);
+  background:var(--sap-accent-soft);
+  padding:8px 10px;
+  border-radius:6px;
 }
 
-/* не вылезаем за карточку при длинных строках */
-.card,
-.card h3,
-.card p {
-  word-wrap: break-word;
-  overflow-wrap: anywhere;
+/* Media inside modal */
+.modal-media{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(220px,1fr));
+  gap:10px;
+  margin-top:10px;
+}
+.modal-media img, .modal-media video{
+  width:100%;
+  border-radius:8px;
+  display:block;
 }
 
-/* ===== ПОЛЯ ВВОДА / ФИЛЬТР ===== */
-input,
-select {
-  font-family: inherit;
-  font-size: 13px;
-  padding: 6px 8px;
-  border-radius: 4px;
-  border: 1px solid var(--sap-border);
-  background: #ffffff;
-  color: var(--sap-text-main);
-  outline: none;
+/* === Media thumbnails (admin & public) === */
+.media-thumb{
+  max-width:100%;
+  max-height:160px;
+  border-radius:8px;
+  display:block;
 }
 
-input:focus,
-select:focus {
-  border-color: var(--sap-accent);
-  box-shadow: 0 0 0 1px var(--sap-accent-soft);
+/* === Image lightbox === */
+.image-lightbox{
+  position:fixed;
+  inset:0;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  background:rgba(15,23,42,0.75);
+  z-index:80;
+}
+.image-lightbox-inner{max-width:95vw;max-height:95vh}
+.image-lightbox-inner img{
+  max-width:100%;
+  max-height:95vh;
+  border-radius:12px;
+  box-shadow:0 20px 40px rgba(0,0,0,0.6);
 }
 
-input {
-  min-width: 220px;
+/* === Form inputs (if copying to admin) === */
+textarea{resize:none;min-height:100px;max-height:320px;overflow:auto}
+select, input{min-height:36px}
+
+/* === Responsive tweaks === */
+@media (max-width:900px){
+  :root{--card-height:220px}
+  main{padding:12px}
+  .list{grid-template-columns:repeat(auto-fill,minmax(220px,1fr))}
 }
-
-/* ===== КНОПКИ ===== */
-button {
-  font-family: inherit;
-  font-size: 13px;
-  border: none;
-  border-radius: 4px;
-  padding: 7px 14px;
-  cursor: pointer;
-  background: var(--sap-accent);
-  color: #ffffff;
-  font-weight: 600;
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-}
-
-button:hover {
-  background: #085caf;
-}
-
-button.secondary {
-  background: #ffffff;
-  color: var(--sap-text-main);
-  border: 1px solid var(--sap-border);
-}
-
-button.secondary:hover {
-  background: #f0f4f7;
-}
-
-button.danger {
-  background: var(--sap-danger);
-}
-
-button.danger:hover {
-  background: #a00000;
-}
-
-/* ===== БЭДЖИ / МЕЛКИЙ ТЕКСТ ===== */
-.badge {
-  display: inline-flex;
-  align-items: center;
-  padding: 2px 8px;
-  border-radius: 999px;
-  font-size: 11px;
-  background: var(--sap-accent-soft);
-  color: var(--sap-accent);
-}
-
-/* ===== МЕДИА ПРЕВЬЮ ===== */
-.media-thumb {
-  max-width: 100%;
-  max-height: 200px;
-  border-radius: 6px;
-  margin-top: 6px;
-  display: block;
-}
-
-/* ===== МОДАЛЬНОЕ ОКНО ===== */
-.modal-backdrop {
-  position: fixed;
-  inset: 0;
-  background: rgba(15, 23, 42, 0.45);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 50;
-}
-
-.modal-window {
-  background: var(--sap-card-bg);
-  border-radius: 0.5rem;
-  max-width: 760px;
-  width: 100%;
-  max-height: 90vh;
-  padding: 16px 18px;
-  border: 1px solid var(--sap-border);
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25);
-  display: flex;
-  flex-direction: column;
-}
-
-.modal-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 10px;
-}
-
-.modal-header h2 {
-  font-size: 16px;
-  margin: 0;
-}
-
-.modal-body {
-  overflow-y: auto;
-  padding-right: 4px;
-  font-size: 13px;
-}
-
-.modal-body h3 {
-  margin-top: 10px;
-  margin-bottom: 4px;
-  font-size: 14px;
-}
-
-.modal-body div {
-  margin-bottom: 4px;
-}
-
-/* блок с медиа внутри модалки */
-.modal-media {
-  margin-top: 10px;
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: 8px;
-}
-
-.modal-media img,
-.modal-media video {
-  width: 100%;
-  border-radius: 6px;
-}
-
-/* ===== ЛАЙТБОКС ДЛЯ КАРТИНОК ===== */
-.image-lightbox {
-  position: fixed;
-  inset: 0;
-  background: rgba(15, 23, 42, 0.75);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 70;
-}
-
-.image-lightbox-inner {
-  max-width: 95vw;
-  max-height: 95vh;
-}
-
-.image-lightbox-inner img {
-  max-width: 100%;
-  max-height: 95vh;
-  border-radius: 12px;
-  box-shadow: 0 20px 40px rgba(15, 23, 42, 0.6);
-}
-
-/* ===== АДАПТИВ ===== */
-@media (max-width: 640px) {
-  main {
-    padding: 12px;
-  }
-
-  .list {
-    grid-template-columns: 1fr;
-  }
-
-  header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 4px;
-  }
+@media (max-width:640px){
+  header{flex-direction:column;align-items:flex-start;padding:12px}
+  .list{grid-template-columns:1fr}
+  :root{--card-height:unset} /* allow full height on mobile */
+  .instruction-card{height:auto; min-height:180px}
+  .instruction-card .content p{-webkit-line-clamp:6}
 }
