@@ -19,6 +19,31 @@ function cropText(text, maxLength = 180) {
   return text.substring(0, maxLength) + '...';
 }
 
+// Простая детерминированная функция, которая по коду возвращает цвет из палитры
+function getColorForModule(code) {
+  const palette = [
+    '#0a6ed1', // синий
+    '#0b9f6b', // зелёный
+    '#f97316', // оранжевый
+    '#7c3aed', // фиолетовый
+    '#ef4444', // красный
+    '#06b6d4', // бирюзовый
+    '#f59e0b', // янтарный
+    '#10b981', // мята
+    '#6366f1', // индиго
+    '#db2777'  // розовый
+  ];
+  if (!code) return palette[0];
+  // хэшируем строку в число
+  let h = 0;
+  for (let i = 0; i < code.length; i++) {
+    h = (h << 5) - h + code.charCodeAt(i);
+    h |= 0;
+  }
+  const idx = Math.abs(h) % palette.length;
+  return palette[idx];
+}
+
 /* ===== ЗАГРУЗКА МОДУЛЕЙ ===== */
 async function loadModulesPublic() {
   try {
@@ -58,24 +83,31 @@ function renderInstructionGrid(listData) {
     card.className = 'card instruction-card';
     card.dataset.id = inst.id;
 
-    // Получаем модуль по id (если есть) и формируем Fiori-мeтку
+    // Получаем модуль по id (если есть) и формируем Fiori-метку
     const moduleObj = modulesCache.find(m => m.id === inst.moduleId);
     const code = moduleObj && moduleObj.code ? moduleObj.code : '';
     const name = moduleObj && moduleObj.name ? moduleObj.name : (inst.moduleId || 'Без модуля');
 
-    // краткие шаги — без списков, просто текст (ограничение по длине)
+    // короткие шаги
     const stepsShort = (inst.steps || [])
       .slice(0, 3)
-      .map((s, idx) => `Шаг ${idx + 1}: ${s}`)
+      .map((s, idx) => `Шаг ${idx + 1}: ${escapeHtml(s)}`)
       .join('<br>');
 
     const hasMoreSteps = (inst.steps || []).length > 3;
     const notesShort = cropText(inst.notes || '', 180);
 
     // Fiori-style badge: code in small box + name
+    const color = getColorForModule(code || name);
+    // badge кликабельный — добавляем data-module-id
     const badgeHtml = code
-      ? `<span class="fiori-badge"><span class="fiori-badge-code">${escapeHtml(code)}</span><span class="fiori-badge-name">${escapeHtml(name)}</span></span>`
-      : `<span class="fiori-badge"><span class="fiori-badge-name">${escapeHtml(name)}</span></span>`;
+      ? `<span class="fiori-badge clickable" data-module-id="${escapeHtml(inst.moduleId)}">
+           <span class="fiori-badge-code" style="background:${color}">${escapeHtml(code)}</span>
+           <span class="fiori-badge-name">${escapeHtml(name)}</span>
+         </span>`
+      : `<span class="fiori-badge clickable" data-module-id="${escapeHtml(inst.moduleId)}">
+           <span class="fiori-badge-name">${escapeHtml(name)}</span>
+         </span>`;
 
     card.innerHTML = `
       <div class="meta">${badgeHtml}</div>
@@ -87,7 +119,6 @@ function renderInstructionGrid(listData) {
       </div>
       <div class="footer" style="margin-top:8px; display:flex; gap:8px; align-items:center;">
         <button type="button" class="secondary open-instruction" data-id="${inst.id}">Увидеть больше</button>
-        <button type="button" class="secondary copy-link" data-id="${inst.id}" title="Копировать ссылку">Копировать ссылку</button>
       </div>
     `;
     list.appendChild(card);
@@ -125,7 +156,7 @@ async function loadInstructionsPublic() {
   renderInstructionGrid(filtered);
 }
 
-/* ===== МОДАЛКА ===== */
+/* ===== МОДАЛКА (просмотр инструкции) ===== */
 function openInstructionModal(inst) {
   const backdrop = document.getElementById('instructionModalBackdrop');
   const titleEl = document.getElementById('modalTitle');
@@ -173,7 +204,6 @@ function openInstructionModal(inst) {
   backdrop.style.display = 'flex';
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
-
 function closeInstructionModal() {
   const backdrop = document.getElementById('instructionModalBackdrop');
   backdrop.style.display = 'none';
@@ -229,21 +259,25 @@ document.getElementById('searchInput')?.addEventListener('keyup', (e) => {
 // Фильтр
 document.getElementById('moduleFilter')?.addEventListener('change', () => loadInstructionsPublic());
 
-// Клик по карточке, кнопкам
+// Обработчик кликов по секции инструкций:
+// - клик по .fiori-badge -> устанавливаем фильтр по модулю
+// - клик по кнопке "Увидеть больше" -> открываем модал
+// - клик по карточке -> открываем модал
 document.getElementById('instructionsSection')?.addEventListener('click', (e) => {
-  const copyBtn = e.target.closest('.copy-link');
-  if (copyBtn) {
-    const id = copyBtn.dataset.id;
-    const url = new URL(window.location.href);
-    url.searchParams.set('inst', id);
-    const link = url.toString();
-    navigator.clipboard.writeText(link).then(() => {
-      const original = copyBtn.textContent;
-      copyBtn.textContent = 'Скопировано';
-      setTimeout(() => copyBtn.textContent = original, 1500);
-    }).catch(() => {
-      alert('Не удалось скопировать ссылку. Скопируйте вручную: ' + link);
-    });
+  // клик по метке
+  const badge = e.target.closest('.fiori-badge.clickable');
+  if (badge) {
+    const moduleId = badge.dataset.moduleId;
+    if (!moduleId) return;
+    const moduleFilter = document.getElementById('moduleFilter');
+    moduleFilter.value = moduleId;
+    loadInstructionsPublic();
+    // плавно прокрутить к началу
+    const main = document.querySelector('main');
+    if (main) {
+      const top = main.getBoundingClientRect().top + window.scrollY - 8;
+      window.scrollTo({ top, behavior: 'smooth' });
+    }
     return;
   }
 
