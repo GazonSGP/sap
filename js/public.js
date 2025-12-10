@@ -4,8 +4,13 @@ let instructionsCache = [];
 
 // ===== ЗАГРУЗКА МОДУЛЕЙ =====
 async function loadModulesPublic() {
-  const res = await fetch('data/modules.json');
-  modulesCache = await res.json();
+  try {
+    const res = await fetch('data/modules.json');
+    modulesCache = await res.json();
+  } catch (err) {
+    console.error('Ошибка загрузки modules.json', err);
+    modulesCache = [];
+  }
 
   const select = document.getElementById('moduleFilter');
   select.innerHTML = '<option value="">Все модули</option>';
@@ -19,8 +24,13 @@ async function loadModulesPublic() {
 
 // ===== ЗАГРУЗКА ИНСТРУКЦИЙ =====
 async function loadInstructionsPublic() {
-  const res = await fetch('data/instructions.json');
-  instructionsCache = await res.json();
+  try {
+    const res = await fetch('data/instructions.json');
+    instructionsCache = await res.json();
+  } catch (err) {
+    console.error('Ошибка загрузки instructions.json', err);
+    instructionsCache = [];
+  }
 
   const search = document.getElementById('searchInput').value.trim().toLowerCase();
   const moduleId = document.getElementById('moduleFilter').value;
@@ -40,44 +50,52 @@ async function loadInstructionsPublic() {
     });
   }
 
+  renderInstructionGrid(filtered);
+}
+
+function cropText(text, maxLength = 180) {
+  if (!text) return '';
+  if (text.length <= maxLength) return text;
+  return text.substring(0, maxLength) + '...';
+}
+
+function renderInstructionGrid(listData) {
   const list = document.getElementById('instructionsSection');
   const empty = document.getElementById('emptyState');
 
   list.innerHTML = '';
 
-  if (!filtered.length) {
+  if (!listData.length) {
     empty.style.display = 'block';
     return;
   }
   empty.style.display = 'none';
 
-  filtered.forEach(inst => {
+  listData.forEach(inst => {
     const card = document.createElement('div');
     card.className = 'card instruction-card';
     card.dataset.id = inst.id;
 
-    // краткие шаги — без списков, просто текст
+    // краткие шаги — без списков, просто текст (ограничение по длине)
     const stepsShort = (inst.steps || [])
       .slice(0, 3)
       .map((s, idx) => `Шаг ${idx + 1}: ${s}`)
       .join('<br>');
 
     const hasMoreSteps = (inst.steps || []).length > 3;
-
-    const notesShort = inst.notes
-      ? inst.notes.substring(0, 120) + (inst.notes.length > 120 ? '...' : '')
-      : '';
+    const notesShort = cropText(inst.notes || '', 180);
 
     card.innerHTML = `
+      <div class="meta"><span class="badge">${inst.moduleId || ''}</span></div>
       <h3>${inst.title}</h3>
-      <p><strong>Транзакция:</strong> ${inst.transactionCode || '-'}</p>
-      ${
-        stepsShort
-          ? `<p>${stepsShort}${hasMoreSteps ? '<br>...</br>' : ''}</p>`
-          : '<p>Шаги не указаны</p>'
-      }
-      ${notesShort ? `<p><strong>Примечания:</strong> ${notesShort}</p>` : ''}
-      <p style="margin-top:8px; font-size:13px; color:#6b7280;">Нажмите, чтобы открыть полную инструкцию</p>
+      <p class="meta"><strong>Транзакция:</strong> ${inst.transactionCode || '-'}</p>
+      <div class="content">
+        ${stepsShort ? `<p>${stepsShort}${hasMoreSteps ? '<br>...' : ''}</p>` : '<p>Шаги не указаны</p>'}
+        ${notesShort ? `<p><strong>Примечания:</strong> ${notesShort}</p>` : ''}
+      </div>
+      <div class="footer" style="margin-top:8px; display:flex; gap:8px; align-items:center;">
+        <button type="button" class="secondary open-instruction" data-id="${inst.id}">Увидеть больше</button>
+      </div>
     `;
     list.appendChild(card);
   });
@@ -95,14 +113,14 @@ function openInstructionModal(inst) {
   titleEl.textContent = inst.title || 'Инструкция';
   txEl.textContent = inst.transactionCode || '-';
 
-  // ПОЛНЫЕ шаги — тоже без списков
+  // ПОЛНЫЕ шаги — без списков
   if (inst.steps && inst.steps.length) {
     const stepsHtml = inst.steps
-      .map((s, idx) => `<div>Шаг ${idx + 1}: ${s}</div>`)
+      .map((s, idx) => `<div class="step">Шаг ${idx + 1}: ${s}</div>`)
       .join('');
     stepsEl.innerHTML = `
       <h3>Шаги</h3>
-      <div style="margin-top:4px;">${stepsHtml}</div>
+      <div class="steps-block">${stepsHtml}</div>
     `;
   } else {
     stepsEl.innerHTML = '<p><em>Шаги не указаны</em></p>';
@@ -133,6 +151,9 @@ function openInstructionModal(inst) {
   });
 
   backdrop.style.display = 'flex';
+
+  // прокрутить страницу так, чтобы модал был виден (на всякий случай)
+  window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
 function closeInstructionModal() {
@@ -169,22 +190,56 @@ document.addEventListener('keydown', (e) => {
 });
 
 // ---------- СЛУШАТЕЛИ ----------
-document.getElementById('reloadBtn').addEventListener('click', () => {
-  loadInstructionsPublic();
+
+// Обновление: сбрасываем поиск/фильтр и перерисовываем сетку.
+// Теперь "Обновить" возвращает к "Все модули" и пустому поиску.
+document.getElementById('reloadBtn').addEventListener('click', async () => {
+  // Сброс поиска и фильтра (визуально)
+  const searchInput = document.getElementById('searchInput');
+  const moduleFilter = document.getElementById('moduleFilter');
+  if (searchInput) searchInput.value = '';
+  if (moduleFilter) moduleFilter.value = '';
+
+  // Перезагрузим модули (чтобы select был актуален) и инструкции
+  await loadModulesPublic();
+  await loadInstructionsPublic();
+
+  // Прокрутить к началу основного контента
+  const main = document.querySelector('main');
+  if (main) {
+    const top = main.getBoundingClientRect().top + window.scrollY - 8;
+    window.scrollTo({ top, behavior: 'smooth' });
+  }
 });
 
+// Поиск по Enter
 document.getElementById('searchInput').addEventListener('keyup', (e) => {
   if (e.key === 'Enter') {
     loadInstructionsPublic();
   }
 });
 
+// Фильтр по модулю
 document.getElementById('moduleFilter').addEventListener('change', () => {
   loadInstructionsPublic();
 });
 
-// Клик по карточке – открываем модалку
+// Клик по карточке или по кнопке "Увидеть больше" — открываем модалку
 document.getElementById('instructionsSection').addEventListener('click', (e) => {
+  // если нажата кнопка "Увидеть больше"
+  const btn = e.target.closest('.open-instruction');
+  if (btn) {
+    const id = btn.dataset.id;
+    const inst = instructionsCache.find(i => i.id === id);
+    if (!inst) {
+      alert('Инструкция не найдена');
+      return;
+    }
+    openInstructionModal(inst);
+    return;
+  }
+
+  // иначе если клик по карточке (не по кнопке)
   const card = e.target.closest('.instruction-card');
   if (!card) return;
   const id = card.dataset.id;
@@ -193,7 +248,7 @@ document.getElementById('instructionsSection').addEventListener('click', (e) => 
   openInstructionModal(inst);
 });
 
-// Закрытие модалки
+// Закрытие модалки инструкции
 document.getElementById('modalCloseBtn').addEventListener('click', closeInstructionModal);
 document.getElementById('instructionModalBackdrop').addEventListener('click', (e) => {
   if (e.target.id === 'instructionModalBackdrop') {
