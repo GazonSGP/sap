@@ -1,4 +1,12 @@
-// docs/js/public.js — финальная версия с компактными цветными метками
+// docs/js/public.js — Полная версия с двухколоночной модалкой (текст слева, медиа справа)
+
+/* ===========================================================
+   В этом файле:
+   - загрузка modules.json и instructions.json
+   - рендер сетки карточек с Fiori-метками
+   - двухколоночная модалка: текст (слева) + медиа (справа)
+   - лайтбокс для картинок
+   =========================================================== */
 
 // Кэш модулей и инструкций
 let modulesCache = [];
@@ -92,8 +100,7 @@ function renderInstructionGrid(listData) {
     // Цвет для кода
     const color = getColorForModule(code || name);
 
-    // Сделаем только цветной квадрат с кодом; добавим title с полным именем модуля
-    // data-module-id используется для фильтра при клике; title показывает название по наведению
+    // Только цветной квадрат с кодом; title показывает полное имя модуля
     const badgeHtml = code
       ? `<span class="fiori-badge clickable" data-module-id="${escapeHtml(inst.moduleId)}" title="${escapeHtml(name)}">
            <span class="fiori-badge-code" style="background:${color}">${escapeHtml(code)}</span>
@@ -165,18 +172,56 @@ async function loadInstructionsPublic() {
   renderInstructionGrid(filtered);
 }
 
-/* ===== МОДАЛКА (просмотр инструкции) ===== */
+/* ===== МОДАЛКА (двухколоночная: текст слева, медиа справа) ===== */
 function openInstructionModal(inst) {
   const backdrop = document.getElementById('instructionModalBackdrop');
-  const titleEl = document.getElementById('modalTitle');
-  const txEl = document.getElementById('modalTransaction');
-  const stepsEl = document.getElementById('modalSteps');
-  const notesEl = document.getElementById('modalNotes');
-  const mediaEl = document.getElementById('modalMedia');
+  if (!backdrop) return;
+  const modalWindow = backdrop.querySelector('.modal-window');
+
+  // Построим внутреннюю структуру модалки динамически, чтобы точно соответствовать стилю two-column
+  modalWindow.innerHTML = `
+    <div class="modal-header" role="banner">
+      <div style="display:flex; gap:12px; align-items:center;">
+        <div id="modalBadgePlaceholder"></div>
+        <h2 id="modalTitle" style="margin:0; font-size:18px;"></h2>
+      </div>
+      <div style="display:flex; gap:8px; align-items:center;">
+        <button id="modalCloseBtn" class="secondary" type="button">Закрыть</button>
+      </div>
+    </div>
+
+    <div class="modal-left" aria-live="polite" style="padding-right:6px;">
+      <p style="margin:6px 0; font-size:13px;"><strong>Транзакция:</strong> <span id="modalTransaction"></span></p>
+      <div id="modalSteps"></div>
+      <div id="modalNotes"></div>
+    </div>
+
+    <div id="modalMedia" class="modal-right" aria-hidden="false"></div>
+  `;
+
+  // Установим заголовок и транзакцию
+  const titleEl = modalWindow.querySelector('#modalTitle');
+  const txEl = modalWindow.querySelector('#modalTransaction');
+  const stepsEl = modalWindow.querySelector('#modalSteps');
+  const notesEl = modalWindow.querySelector('#modalNotes');
+  const mediaContainer = modalWindow.querySelector('#modalMedia');
+  const badgePlaceholder = modalWindow.querySelector('#modalBadgePlaceholder');
+  const closeBtn = modalWindow.querySelector('#modalCloseBtn');
 
   titleEl.textContent = inst.title || 'Инструкция';
   txEl.textContent = inst.transactionCode || '-';
 
+  // Показать метку (код + цвет) в заголовке
+  const moduleObj = modulesCache.find(m => m.id === inst.moduleId);
+  const code = moduleObj && moduleObj.code ? moduleObj.code : '';
+  const name = moduleObj && moduleObj.name ? moduleObj.name : (inst.moduleId || 'Без модуля');
+  const color = getColorForModule(code || name);
+  const badgeHtml = code
+    ? `<span class="fiori-badge" title="${escapeHtml(name)}"><span class="fiori-badge-code" style="background:${color}">${escapeHtml(code)}</span></span>`
+    : `<span class="fiori-badge" title="${escapeHtml(name)}"><span class="fiori-badge-code" style="background:${color}">${escapeHtml((name && name[0]) || '')}</span></span>`;
+  badgePlaceholder.innerHTML = badgeHtml;
+
+  // Left column: steps
   if (inst.steps && inst.steps.length) {
     const stepsHtml = inst.steps
       .map((s, idx) => `<div class="step">Шаг ${idx + 1}: ${escapeHtml(s)}</div>`)
@@ -186,36 +231,129 @@ function openInstructionModal(inst) {
     stepsEl.innerHTML = '<p><em>Шаги не указаны</em></p>';
   }
 
+  // Notes
   if (inst.notes) {
-    notesEl.innerHTML = `<h3>Примечания</h3><p>${escapeHtml(inst.notes)}</p>`;
+    notesEl.innerHTML = `<h3>Примечания</h3><div class="modal-notes">${escapeHtml(inst.notes)}</div>`;
   } else {
     notesEl.innerHTML = '';
   }
 
-  mediaEl.innerHTML = '';
-  (inst.media || []).forEach(m => {
-    let el;
-    if (m.type === 'image') {
-      el = document.createElement('img');
-      el.src = m.url;
-      el.style.cursor = 'zoom-in';
-      el.className = 'media-thumb';
-      el.addEventListener('click', () => openImageLightbox(m.url));
-    } else {
-      el = document.createElement('video');
-      el.src = m.url;
-      el.controls = true;
-      el.className = 'media-thumb';
+  // Правый столбец: media
+  mediaContainer.innerHTML = ''; // очистим
+
+  // создаём структуру: main preview + thumbs + controls
+  const mainPreview = document.createElement('div');
+  mainPreview.className = 'modal-main-media';
+  const thumbsColumn = document.createElement('div');
+  thumbsColumn.className = 'modal-thumbs';
+  const controlsRow = document.createElement('div');
+  controlsRow.className = 'media-controls';
+
+  mediaContainer.appendChild(mainPreview);
+  mediaContainer.appendChild(thumbsColumn);
+  mediaContainer.appendChild(controlsRow);
+
+  const mediaList = Array.isArray(inst.media) ? inst.media.slice() : [];
+
+  // renderMain
+  let currentIndex = 0;
+  function renderMain(idx) {
+    mainPreview.innerHTML = '';
+    if (!mediaList.length) {
+      mainPreview.innerHTML = '<div style="padding:18px;color:#6b7280">Нет медиа</div>';
+      return;
     }
-    mediaEl.appendChild(el);
+    const m = mediaList[idx];
+    if (m.type === 'image') {
+      const img = document.createElement('img');
+      img.src = m.url;
+      img.alt = inst.title || 'image';
+      img.style.cursor = 'zoom-in';
+      img.addEventListener('click', () => openImageLightbox(m.url));
+      mainPreview.appendChild(img);
+    } else {
+      const video = document.createElement('video');
+      video.src = m.url;
+      video.controls = true;
+      video.style.maxHeight = '100%';
+      mainPreview.appendChild(video);
+    }
+    thumbsColumn.querySelectorAll('.thumb').forEach((t, i) => {
+      t.classList.toggle('active', i === idx);
+    });
+    currentIndex = idx;
+  }
+
+  // Fill thumbs
+  thumbsColumn.innerHTML = '';
+  mediaList.forEach((m, i) => {
+    const t = document.createElement('div');
+    t.className = 'thumb';
+    t.dataset.index = i;
+    if (m.type === 'image') {
+      const img = document.createElement('img');
+      img.src = m.url;
+      t.appendChild(img);
+    } else {
+      const vid = document.createElement('video');
+      vid.src = m.url;
+      vid.muted = true;
+      vid.loop = true;
+      vid.play().catch(()=>{/* ignore autoplay block */});
+      t.appendChild(vid);
+    }
+    t.addEventListener('click', () => renderMain(i));
+    thumbsColumn.appendChild(t);
   });
 
+  // Controls
+  controlsRow.innerHTML = `
+    <div style="display:flex;gap:8px;">
+      <button type="button" class="secondary modal-prev">◀</button>
+      <button type="button" class="secondary modal-next">▶</button>
+    </div>
+    <div style="display:flex;gap:8px;">
+      <button type="button" class="secondary modal-download">Скачать медиа</button>
+    </div>
+  `;
+
+  controlsRow.querySelector('.modal-prev').addEventListener('click', () => {
+    const next = (currentIndex - 1 + mediaList.length) % mediaList.length;
+    renderMain(next);
+  });
+  controlsRow.querySelector('.modal-next').addEventListener('click', () => {
+    const next = (currentIndex + 1) % mediaList.length;
+    renderMain(next);
+  });
+  controlsRow.querySelector('.modal-download').addEventListener('click', () => {
+    mediaList.forEach(m => {
+      const a = document.createElement('a');
+      a.href = m.url;
+      a.download = m.url.split('/').pop();
+      a.target = '_blank';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    });
+  });
+
+  renderMain(0);
+
+  // show modal
   backdrop.style.display = 'flex';
-  window.scrollTo({ top: 0, behavior: 'smooth' });
+
+  // bind close button (rebind to ensure works)
+  closeBtn.addEventListener('click', closeInstructionModal);
+
+  // scroll left column to top
+  const left = modalWindow.querySelector('.modal-left');
+  if (left) left.scrollTop = 0;
 }
 
+/* close modal */
 function closeInstructionModal() {
   const backdrop = document.getElementById('instructionModalBackdrop');
+  if (!backdrop) return;
   backdrop.style.display = 'none';
 }
 
@@ -223,12 +361,14 @@ function closeInstructionModal() {
 function openImageLightbox(src) {
   const lb = document.getElementById('imageLightbox');
   const img = document.getElementById('lightboxImg');
+  if (!lb || !img) return;
   img.src = src;
   lb.style.display = 'flex';
 }
 function closeImageLightbox() {
   const lb = document.getElementById('imageLightbox');
   const img = document.getElementById('lightboxImg');
+  if (!lb || !img) return;
   img.src = '';
   lb.style.display = 'none';
 }
@@ -272,10 +412,7 @@ document.getElementById('moduleFilter')?.addEventListener('change', () => {
   updateActiveBadges();
 });
 
-// Обработчик кликов по секции инструкций:
-// - клик по .fiori-badge -> устанавливаем фильтр по модулю
-// - клик по кнопке "Увидеть больше" -> открываем модал
-// - клик по карточке -> открываем модал
+// Клики по карточкам / меткам / кнопкам
 document.getElementById('instructionsSection')?.addEventListener('click', (e) => {
   // клик по метке
   const badge = e.target.closest('.fiori-badge.clickable');
@@ -286,7 +423,6 @@ document.getElementById('instructionsSection')?.addEventListener('click', (e) =>
     moduleFilter.value = moduleId;
     loadInstructionsPublic();
     updateActiveBadges();
-    // плавно прокрутить к началу
     const main = document.querySelector('main');
     if (main) {
       const top = main.getBoundingClientRect().top + window.scrollY - 8;
@@ -312,8 +448,7 @@ document.getElementById('instructionsSection')?.addEventListener('click', (e) =>
   openInstructionModal(inst);
 });
 
-// Закрытие модалки
-document.getElementById('modalCloseBtn')?.addEventListener('click', closeInstructionModal);
+// Закрытие модалки при клике на фон
 document.getElementById('instructionModalBackdrop')?.addEventListener('click', (e) => {
   if (e.target.id === 'instructionModalBackdrop') closeInstructionModal();
 });
