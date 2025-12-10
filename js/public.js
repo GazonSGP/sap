@@ -1,18 +1,12 @@
 // docs/js/public.js — Полная версия с двухколоночной модалкой (текст слева, медиа справа)
+// Включает: загрузку данных, рендер карточек, компактные Fiori-метки, модалка two-column,
+// корректный перенос в примечаниях, скрытие стрелок если медиа <= 1, лайтбокс.
 
-/* ===========================================================
-   В этом файле:
-   - загрузка modules.json и instructions.json
-   - рендер сетки карточек с Fiori-метками
-   - двухколоночная модалка: текст (слева) + медиа (справа)
-   - лайтбокс для картинок
-   =========================================================== */
-
-// Кэш модулей и инструкций
+// --------- КЭШИ ---------
 let modulesCache = [];
 let instructionsCache = [];
 
-/* ===== HELPERS ===== */
+// --------- HELPERS ---------
 function escapeHtml(str) {
   if (str === null || str === undefined) return '';
   return String(str)
@@ -29,7 +23,6 @@ function cropText(text, maxLength = 180) {
   return text.substring(0, maxLength) + '...';
 }
 
-// Детерминированный выбор цвета по коду/названию
 function getColorForModule(code) {
   const palette = [
     '#0a6ed1', '#0b9f6b', '#f97316', '#7c3aed', '#ef4444',
@@ -44,7 +37,7 @@ function getColorForModule(code) {
   return palette[Math.abs(h) % palette.length];
 }
 
-/* ===== ЗАГРУЗКА МОДУЛЕЙ ===== */
+// --------- ЗАГРУЗКА modules.json ---------
 async function loadModulesPublic() {
   try {
     const res = await fetch('data/modules.json');
@@ -65,7 +58,7 @@ async function loadModulesPublic() {
   });
 }
 
-/* ===== РЕНДЕР СЕТКИ ИНСТРУКЦИЙ ===== */
+// --------- РЕНДЕР СЕТКИ ИНСТРУКЦИЙ ---------
 function renderInstructionGrid(listData) {
   const list = document.getElementById('instructionsSection');
   const empty = document.getElementById('emptyState');
@@ -83,12 +76,10 @@ function renderInstructionGrid(listData) {
     card.className = 'card instruction-card';
     card.dataset.id = inst.id;
 
-    // Получаем модуль по id (если есть) и формируем компактную цветную метку (только код)
     const moduleObj = modulesCache.find(m => m.id === inst.moduleId);
     const code = moduleObj && moduleObj.code ? moduleObj.code : '';
     const name = moduleObj && moduleObj.name ? moduleObj.name : (inst.moduleId || 'Без модуля');
 
-    // короткие шаги (ограниченные)
     const stepsShort = (inst.steps || [])
       .slice(0, 3)
       .map((s, idx) => `Шаг ${idx + 1}: ${escapeHtml(s)}`)
@@ -97,10 +88,8 @@ function renderInstructionGrid(listData) {
     const hasMoreSteps = (inst.steps || []).length > 3;
     const notesShort = cropText(inst.notes || '', 180);
 
-    // Цвет для кода
     const color = getColorForModule(code || name);
 
-    // Только цветной квадрат с кодом; title показывает полное имя модуля
     const badgeHtml = code
       ? `<span class="fiori-badge clickable" data-module-id="${escapeHtml(inst.moduleId)}" title="${escapeHtml(name)}">
            <span class="fiori-badge-code" style="background:${color}">${escapeHtml(code)}</span>
@@ -124,11 +113,9 @@ function renderInstructionGrid(listData) {
     list.appendChild(card);
   });
 
-  // После рендера обновим подсветку активной метки (если фильтр активен)
   updateActiveBadges();
 }
 
-/* Пометка активных меток (подсветка) */
 function updateActiveBadges() {
   const selectedModule = document.getElementById('moduleFilter')?.value || '';
   document.querySelectorAll('.fiori-badge').forEach(b => {
@@ -141,7 +128,7 @@ function updateActiveBadges() {
   });
 }
 
-/* ===== ЗАГРУЗКА ИНСТРУКЦИЙ ===== */
+// --------- ЗАГРУЗКА instructions.json ---------
 async function loadInstructionsPublic() {
   try {
     const res = await fetch('data/instructions.json');
@@ -172,13 +159,12 @@ async function loadInstructionsPublic() {
   renderInstructionGrid(filtered);
 }
 
-/* ===== МОДАЛКА (двухколоночная: текст слева, медиа справа) ===== */
+// --------- МОДАЛКА (двухколоночная) ---------
 function openInstructionModal(inst) {
   const backdrop = document.getElementById('instructionModalBackdrop');
   if (!backdrop) return;
   const modalWindow = backdrop.querySelector('.modal-window');
 
-  // Построим внутреннюю структуру модалки динамически, чтобы точно соответствовать стилю two-column
   modalWindow.innerHTML = `
     <div class="modal-header" role="banner">
       <div style="display:flex; gap:12px; align-items:center;">
@@ -199,7 +185,6 @@ function openInstructionModal(inst) {
     <div id="modalMedia" class="modal-right" aria-hidden="false"></div>
   `;
 
-  // Установим заголовок и транзакцию
   const titleEl = modalWindow.querySelector('#modalTitle');
   const txEl = modalWindow.querySelector('#modalTransaction');
   const stepsEl = modalWindow.querySelector('#modalSteps');
@@ -211,7 +196,6 @@ function openInstructionModal(inst) {
   titleEl.textContent = inst.title || 'Инструкция';
   txEl.textContent = inst.transactionCode || '-';
 
-  // Показать метку (код + цвет) в заголовке
   const moduleObj = modulesCache.find(m => m.id === inst.moduleId);
   const code = moduleObj && moduleObj.code ? moduleObj.code : '';
   const name = moduleObj && moduleObj.name ? moduleObj.name : (inst.moduleId || 'Без модуля');
@@ -221,7 +205,6 @@ function openInstructionModal(inst) {
     : `<span class="fiori-badge" title="${escapeHtml(name)}"><span class="fiori-badge-code" style="background:${color}">${escapeHtml((name && name[0]) || '')}</span></span>`;
   badgePlaceholder.innerHTML = badgeHtml;
 
-  // Left column: steps
   if (inst.steps && inst.steps.length) {
     const stepsHtml = inst.steps
       .map((s, idx) => `<div class="step">Шаг ${idx + 1}: ${escapeHtml(s)}</div>`)
@@ -231,17 +214,13 @@ function openInstructionModal(inst) {
     stepsEl.innerHTML = '<p><em>Шаги не указаны</em></p>';
   }
 
-  // Notes
   if (inst.notes) {
     notesEl.innerHTML = `<h3>Примечания</h3><div class="modal-notes">${escapeHtml(inst.notes)}</div>`;
   } else {
     notesEl.innerHTML = '';
   }
 
-  // Правый столбец: media
-  mediaContainer.innerHTML = ''; // очистим
-
-  // создаём структуру: main preview + thumbs + controls
+  mediaContainer.innerHTML = '';
   const mainPreview = document.createElement('div');
   mainPreview.className = 'modal-main-media';
   const thumbsColumn = document.createElement('div');
@@ -255,14 +234,18 @@ function openInstructionModal(inst) {
 
   const mediaList = Array.isArray(inst.media) ? inst.media.slice() : [];
 
-  // renderMain
+  if (!mediaList.length) {
+    mainPreview.innerHTML = '<div style="padding:18px;color:#6b7280">Нет медиа</div>';
+    controlsRow.classList.add('hidden');
+    thumbsColumn.innerHTML = '';
+    backdrop.style.display = 'flex';
+    closeBtn.addEventListener('click', closeInstructionModal);
+    return;
+  }
+
   let currentIndex = 0;
   function renderMain(idx) {
     mainPreview.innerHTML = '';
-    if (!mediaList.length) {
-      mainPreview.innerHTML = '<div style="padding:18px;color:#6b7280">Нет медиа</div>';
-      return;
-    }
     const m = mediaList[idx];
     if (m.type === 'image') {
       const img = document.createElement('img');
@@ -284,7 +267,6 @@ function openInstructionModal(inst) {
     currentIndex = idx;
   }
 
-  // Fill thumbs
   thumbsColumn.innerHTML = '';
   mediaList.forEach((m, i) => {
     const t = document.createElement('div');
@@ -299,34 +281,59 @@ function openInstructionModal(inst) {
       vid.src = m.url;
       vid.muted = true;
       vid.loop = true;
-      vid.play().catch(()=>{/* ignore autoplay block */});
+      vid.play().catch(()=>{/* ignore autoplay */});
       t.appendChild(vid);
     }
     t.addEventListener('click', () => renderMain(i));
     thumbsColumn.appendChild(t);
   });
 
-  // Controls
-  controlsRow.innerHTML = `
-    <div style="display:flex;gap:8px;">
-      <button type="button" class="secondary modal-prev">◀</button>
-      <button type="button" class="secondary modal-next">▶</button>
-    </div>
-    <div style="display:flex;gap:8px;">
-      <button type="button" class="secondary modal-download">Скачать медиа</button>
-    </div>
-  `;
+  if (mediaList.length > 1) {
+    controlsRow.classList.remove('hidden');
+    controlsRow.innerHTML = `
+      <div style="display:flex;gap:8px;">
+        <button type="button" class="secondary modal-prev">◀</button>
+        <button type="button" class="secondary modal-next">▶</button>
+      </div>
+      <div style="display:flex;gap:8px;">
+        <button type="button" class="secondary modal-download">Скачать медиа</button>
+      </div>
+    `;
 
-  controlsRow.querySelector('.modal-prev').addEventListener('click', () => {
-    const next = (currentIndex - 1 + mediaList.length) % mediaList.length;
-    renderMain(next);
-  });
-  controlsRow.querySelector('.modal-next').addEventListener('click', () => {
-    const next = (currentIndex + 1) % mediaList.length;
-    renderMain(next);
-  });
-  controlsRow.querySelector('.modal-download').addEventListener('click', () => {
-    mediaList.forEach(m => {
+    controlsRow.querySelector('.modal-prev').addEventListener('click', () => {
+      const next = (currentIndex - 1 + mediaList.length) % mediaList.length;
+      renderMain(next);
+    });
+    controlsRow.querySelector('.modal-next').addEventListener('click', () => {
+      const next = (currentIndex + 1) % mediaList.length;
+      renderMain(next);
+    });
+
+    controlsRow.querySelectorAll('.modal-download')?.forEach(el => {
+      el.addEventListener('click', () => {
+        mediaList.forEach(m => {
+          const a = document.createElement('a');
+          a.href = m.url;
+          a.download = m.url.split('/').pop();
+          a.target = '_blank';
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+        });
+      });
+    });
+  } else {
+    controlsRow.classList.add('hidden');
+    // отдельная кнопка загрузки для одного медиа
+    const dl = document.createElement('div');
+    dl.style.display = 'flex';
+    dl.style.justifyContent = 'flex-end';
+    dl.style.marginTop = '8px';
+    const btn = document.createElement('button');
+    btn.className = 'secondary modal-download';
+    btn.textContent = 'Скачать медиа';
+    btn.addEventListener('click', () => {
+      const m = mediaList[0];
       const a = document.createElement('a');
       a.href = m.url;
       a.download = m.url.split('/').pop();
@@ -335,29 +342,27 @@ function openInstructionModal(inst) {
       a.click();
       a.remove();
     });
-  });
+    dl.appendChild(btn);
+    mediaContainer.appendChild(dl);
+  }
 
   renderMain(0);
 
-  // show modal
   backdrop.style.display = 'flex';
-
-  // bind close button (rebind to ensure works)
   closeBtn.addEventListener('click', closeInstructionModal);
 
-  // scroll left column to top
   const left = modalWindow.querySelector('.modal-left');
   if (left) left.scrollTop = 0;
 }
 
-/* close modal */
+// --------- Закрытие модалки ---------
 function closeInstructionModal() {
   const backdrop = document.getElementById('instructionModalBackdrop');
   if (!backdrop) return;
   backdrop.style.display = 'none';
 }
 
-/* ===== ЛАЙТБОКС КАРТИНОК ===== */
+// --------- ЛАЙТБОКС ---------
 function openImageLightbox(src) {
   const lb = document.getElementById('imageLightbox');
   const img = document.getElementById('lightboxImg');
@@ -382,9 +387,7 @@ document.addEventListener('keydown', (e) => {
   }
 });
 
-/* ===== СЛУШАТЕЛИ ===== */
-
-// Обновление: сброс поиска и фильтра и перерисовка
+// --------- СЛУШАТЕЛИ ---------
 document.getElementById('reloadBtn')?.addEventListener('click', async () => {
   const searchInput = document.getElementById('searchInput');
   const moduleFilter = document.getElementById('moduleFilter');
@@ -401,20 +404,16 @@ document.getElementById('reloadBtn')?.addEventListener('click', async () => {
   }
 });
 
-// Поиск по Enter
 document.getElementById('searchInput')?.addEventListener('keyup', (e) => {
   if (e.key === 'Enter') loadInstructionsPublic();
 });
 
-// Фильтр
 document.getElementById('moduleFilter')?.addEventListener('change', () => {
   loadInstructionsPublic();
   updateActiveBadges();
 });
 
-// Клики по карточкам / меткам / кнопкам
 document.getElementById('instructionsSection')?.addEventListener('click', (e) => {
-  // клик по метке
   const badge = e.target.closest('.fiori-badge.clickable');
   if (badge) {
     const moduleId = badge.dataset.moduleId;
@@ -448,17 +447,15 @@ document.getElementById('instructionsSection')?.addEventListener('click', (e) =>
   openInstructionModal(inst);
 });
 
-// Закрытие модалки при клике на фон
 document.getElementById('instructionModalBackdrop')?.addEventListener('click', (e) => {
   if (e.target.id === 'instructionModalBackdrop') closeInstructionModal();
 });
 
-/* ===== INIT ===== */
+// --------- INIT ---------
 (async function init() {
   await loadModulesPublic();
   await loadInstructionsPublic();
 
-  // открыть по ?inst=ID если есть
   const params = new URLSearchParams(window.location.search);
   const instId = params.get('inst');
   if (instId) {
@@ -466,6 +463,5 @@ document.getElementById('instructionModalBackdrop')?.addEventListener('click', (
     if (inst) setTimeout(() => openInstructionModal(inst), 300);
   }
 
-  // пометить активные бейджи если фильтр уже выставлен
   updateActiveBadges();
 })();
