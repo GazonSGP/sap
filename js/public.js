@@ -384,7 +384,7 @@ function openInstructionModal(inst) {
         <button type="button" class="secondary modal-next">▶</button>
       </div>
       <div style="display:flex;gap:8px;">
-        <button type="button" class="secondary modal-download">Скачать медиа</button>
+        <button type="button" class="secondary modal-download">Скачать</button>
       </div>
     `;
 
@@ -420,7 +420,7 @@ function openInstructionModal(inst) {
     dl.style.marginTop = '8px';
     const btn = document.createElement('button');
     btn.className = 'secondary modal-download';
-    btn.textContent = 'Скачать медиа';
+    btn.textContent = 'Скачать ';
     btn.addEventListener('click', () => {
       const m = mediaList[0];
       const a = document.createElement('a');
