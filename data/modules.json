@@ -26,26 +26,9 @@
     "name": "Сопровождение",
     "createdAt": "2025-12-11T11:00:11.706Z",
     "updatedAt": "2025-12-11T11:00:11.706Z"
-  },
-  {
-    "id": "1765452087735",
-    "title": "1",
-    "moduleId": "1765450782724",
-    "transactionCode": "1",
-    "steps": [
-      "1"
-    ],
-    "notes": "1",
-    "media": [
-      {
-        "type": "image",
-        "url": "/uploads/images/1765452079641-48581094.apk"
-      }
-    ],
-    "createdAt": "2025-12-11T11:21:27.735Z",
-    "updatedAt": "2025-12-11T11:21:27.735Z"
   }
 ]
+
 
 
 
