@@ -104,21 +104,22 @@
     "media": [
       {
         "type": "image",
-        "url": "/uploads/images/1765431100753-938952821.png"
+        "url": "uploads/images/1765431100753-938952821.png"
       },
       {
         "type": "image",
-        "url": "/uploads/images/1765431105564-782928566.jpg"
+        "url": "uploads/images/1765431105564-782928566.jpg"
       },
       {
         "type": "image",
-        "url": "/uploads/images/1765431113702-582743368.png"
+        "url": "uploads/images/1765431113702-582743368.png"
       }
     ],
     "createdAt": "2025-12-11T05:31:55.655Z",
     "updatedAt": "2025-12-11T05:31:55.655Z"
   }
 ]
+
 
 
 
