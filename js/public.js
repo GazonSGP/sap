@@ -1,6 +1,5 @@
-// docs/js/public.js — Полная версия с двухколоночной модалкой (обновлённая)
-// Поддержка image|video|file, фоллбэк при ошибке загрузки изображения,
-// скрытие стрелок если медиа <= 1, скачивание медиа, безопасный рендер.
+// docs/js/public.js — Готовая версия публичного скрипта
+// Поддержка image|video|file, двухколоночной модалки, скачивания, безопасный рендер
 
 let modulesCache = [];
 let instructionsCache = [];
@@ -57,7 +56,7 @@ function fileNameFromUrl(url) {
 /* ================= LOAD modules.json ================= */
 async function loadModulesPublic() {
   try {
-    const res = await fetch('data/modules.json');
+    const res = await fetch('data/modules.json', { cache: 'no-store' });
     modulesCache = await res.json();
   } catch (err) {
     console.error('Ошибка загрузки modules.json', err);
@@ -105,15 +104,13 @@ function renderInstructionGrid(listData) {
     const hasMoreSteps = (inst.steps || []).length > 3;
     const notesShort = cropText(inst.notes || '', 180);
 
-    const color = getColorForModule(code || name);
+    // color: prefer moduleObj.color if present, otherwise fallback to palette based on code/name
+    const color = (moduleObj && moduleObj.color) ? moduleObj.color : getColorForModule(code || name || inst.moduleId);
 
-    const badgeHtml = code
-      ? `<span class="fiori-badge clickable" data-module-id="${escapeHtml(inst.moduleId)}" title="${escapeHtml(name)}">
-           <span class="fiori-badge-code" style="background:${color}">${escapeHtml(code)}</span>
-         </span>`
-      : `<span class="fiori-badge clickable" data-module-id="${escapeHtml(inst.moduleId)}" title="${escapeHtml(name)}">
-           <span class="fiori-badge-code" style="background:${color}">${escapeHtml((name && name[0]) || '')}</span>
-         </span>`;
+    // badge: show code or first letter; clickable and contains moduleId
+    const badgeHtml = `<span class="fiori-badge clickable" data-module-id="${escapeHtml(inst.moduleId || '')}" title="${escapeHtml(name)}">
+                         <span class="fiori-badge-code" style="background:${escapeHtml(color)}">${escapeHtml(code || (name && name[0]) || '')}</span>
+                       </span>`;
 
     card.innerHTML = `
       <div class="meta">${badgeHtml}</div>
@@ -136,7 +133,7 @@ function renderInstructionGrid(listData) {
 /* ================= LOAD instructions.json ================= */
 async function loadInstructionsPublic() {
   try {
-    const res = await fetch('data/instructions.json');
+    const res = await fetch('data/instructions.json', { cache: 'no-store' });
     instructionsCache = await res.json();
   } catch (err) {
     console.error('Ошибка загрузки instructions.json', err);
@@ -162,6 +159,19 @@ async function loadInstructionsPublic() {
   }
 
   renderInstructionGrid(filtered);
+}
+
+/* ================= UPDATE BADGES ================= */
+function updateActiveBadges() {
+  const selectedModule = document.getElementById('moduleFilter')?.value || '';
+  document.querySelectorAll('.fiori-badge').forEach(b => {
+    const mid = b.dataset.moduleId || '';
+    if (!selectedModule) {
+      b.classList.remove('active');
+    } else {
+      b.classList.toggle('active', mid === selectedModule);
+    }
+  });
 }
 
 /* ================= MODAL (двухколонка) ================= */
@@ -204,10 +214,9 @@ function openInstructionModal(inst) {
   const moduleObj = modulesCache.find(m => m.id === inst.moduleId);
   const code = moduleObj && moduleObj.code ? moduleObj.code : '';
   const name = moduleObj && moduleObj.name ? moduleObj.name : (inst.moduleId || 'Без модуля');
-  const color = getColorForModule(code || name);
-  const badgeHtml = code
-    ? `<span class="fiori-badge" title="${escapeHtml(name)}"><span class="fiori-badge-code" style="background:${color}">${escapeHtml(code)}</span></span>`
-    : `<span class="fiori-badge" title="${escapeHtml(name)}"><span class="fiori-badge-code" style="background:${color}">${escapeHtml((name && name[0]) || '')}</span></span>`;
+  // prefer explicit module color
+  const color = (moduleObj && moduleObj.color) ? moduleObj.color : getColorForModule(code || name || inst.moduleId);
+  const badgeHtml = `<span class="fiori-badge" title="${escapeHtml(name)}"><span class="fiori-badge-code" style="background:${escapeHtml(color)}">${escapeHtml(code || (name && name[0]) || '')}</span></span>`;
   badgePlaceholder.innerHTML = badgeHtml;
 
   if (inst.steps && inst.steps.length) {
@@ -274,7 +283,6 @@ function openInstructionModal(inst) {
       img.src = url;
       img.alt = m.filename || fileNameFromUrl(url) || inst.title || 'image';
       img.style.cursor = 'zoom-in';
-      // если изображение не загрузилось -> показать карточку файла
       img.addEventListener('error', () => {
         mainPreview.innerHTML = '';
         const wrap = document.createElement('div');
@@ -286,7 +294,7 @@ function openInstructionModal(inst) {
               <div style="font-weight:700;">${escapeHtml(m.filename || fileNameFromUrl(url))}</div>
               <div style="color:#6b7280;font-size:13px;margin-top:6px;">Тип: файл (не изображение)</div>
             </div>
-            <div style="margin-left:12px"><a class="secondary" href="${url}" download target="_blank">Скачать</a></div>
+            <div style="margin-left:12px"><a class="secondary" href="${escapeHtml(url)}" download target="_blank">Скачать</a></div>
           </div>
         `;
         mainPreview.appendChild(wrap);
@@ -313,7 +321,7 @@ function openInstructionModal(inst) {
             <div style="font-weight:700;">${escapeHtml(m.filename || fileNameFromUrl(url))}</div>
             <div style="color:#6b7280;font-size:13px;margin-top:6px;">Тип: файл</div>
           </div>
-          <div style="margin-left:12px"><a class="secondary" href="${url}" download target="_blank">Скачать</a></div>
+          <div style="margin-left:12px"><a class="secondary" href="${escapeHtml(url)}" download target="_blank">Скачать</a></div>
         </div>
       `;
       mainPreview.appendChild(wrap);
@@ -420,7 +428,7 @@ function openInstructionModal(inst) {
     dl.style.marginTop = '8px';
     const btn = document.createElement('button');
     btn.className = 'secondary modal-download';
-    btn.textContent = 'Скачать ';
+    btn.textContent = 'Скачать';
     btn.addEventListener('click', () => {
       const m = mediaList[0];
       const a = document.createElement('a');
