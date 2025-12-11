@@ -91,41 +91,9 @@
     ],
     "createdAt": "2025-12-10T08:00:50.501Z",
     "updatedAt": "2025-12-10T08:00:50.501Z"
-  },
-  {
-    "id": "1765449894532",
-    "title": "Установка сбор данных Андроид",
-    "moduleId": "1765449740987",
-    "transactionCode": "lacit.sbor-release.apk",
-    "steps": [
-      "Скачайте .APK  файл ниже.",
-      "Скопируйте файл на ТСД.",
-      "Нажмите установить."
-    ],
-    "notes": "Воспользуйтесь кабелем  USB Type-C.\nРежим работы USB выберите \"передача файлов\"",
-    "media": [
-      {
-        "type": "image",
-        "url": "uploads/images/lacit.sbor-release.apk"
-      }
-    ],
-    "createdAt": "2025-12-11T10:44:54.532Z",
-    "updatedAt": "2025-12-11T10:44:54.532Z"
-  },
-  {
-    "id": "1765450586851",
-    "title": "2",
-    "moduleId": "1765450404381",
-    "transactionCode": "2",
-    "steps": [
-      "12"
-    ],
-    "notes": "eadaw",
-    "media": [],
-    "createdAt": "2025-12-11T10:56:26.851Z",
-    "updatedAt": "2025-12-11T10:56:26.851Z"
   }
 ]
+
 
 
 
