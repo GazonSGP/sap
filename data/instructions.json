@@ -94,6 +94,7 @@
   },
   {
     "id": "1765450876456",
+    "color": "#0ad13c",
     "title": "Установка сбор данных Андроид",
     "moduleId": "1765452429539",
     "transactionCode": "lacit.sbor-release.apk",
@@ -113,6 +114,7 @@
     "updatedAt": "2025-12-11T11:01:16.456Z"
   }
 ]
+
 
 
 
