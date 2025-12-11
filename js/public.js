@@ -1,11 +1,12 @@
-// docs/js/public.js — Полная версия с двухколоночной модалкой (обновлённая)
-// Поддержка image|video|file, фоллбэк при ошибке загрузки изображения,
-// скрытие стрелок если медиа <= 1, скачивание медиа, безопасный рендер.
+// docs/js/public.js — Полная версия с двухколоночной модалкой (текст слева, медиа справа)
+// Включает: загрузку данных, рендер карточек, компактные Fiori-метки, модалка two-column,
+// корректный перенос в примечаниях, скрытие стрелок если медиа <= 1, лайтбокс.
 
+// --------- КЭШИ ---------
 let modulesCache = [];
 let instructionsCache = [];
 
-/* ================= HELPERS ================= */
+// --------- HELPERS ---------
 function escapeHtml(str) {
   if (str === null || str === undefined) return '';
   return String(str)
@@ -36,25 +37,7 @@ function getColorForModule(code) {
   return palette[Math.abs(h) % palette.length];
 }
 
-const IMAGE_EXTS = ['jpg','jpeg','png','gif','webp','svg','bmp','tiff','ico'];
-const VIDEO_EXTS = ['mp4','webm','ogg','mov','mkv'];
-
-function extFromUrl(url) {
-  if (!url) return '';
-  try {
-    const u = url.split('?')[0];
-    const m = u.toLowerCase().match(/\.([a-z0-9]+)$/);
-    return m ? m[1] : '';
-  } catch (e) { return ''; }
-}
-function isImageByUrl(url) { return IMAGE_EXTS.includes(extFromUrl(url)); }
-function isVideoByUrl(url) { return VIDEO_EXTS.includes(extFromUrl(url)); }
-function fileNameFromUrl(url) {
-  if (!url) return '';
-  try { return decodeURIComponent((url||'').split('/').pop().split('?')[0]); } catch(e) { return (url||'').split('/').pop(); }
-}
-
-/* ================= LOAD modules.json ================= */
+// --------- ЗАГРУЗКА modules.json ---------
 async function loadModulesPublic() {
   try {
     const res = await fetch('data/modules.json');
@@ -75,7 +58,7 @@ async function loadModulesPublic() {
   });
 }
 
-/* ================= RENDER GRID ================= */
+// --------- РЕНДЕР СЕТКИ ИНСТРУКЦИЙ ---------
 function renderInstructionGrid(listData) {
   const list = document.getElementById('instructionsSection');
   const empty = document.getElementById('emptyState');
@@ -133,7 +116,19 @@ function renderInstructionGrid(listData) {
   updateActiveBadges();
 }
 
-/* ================= LOAD instructions.json ================= */
+function updateActiveBadges() {
+  const selectedModule = document.getElementById('moduleFilter')?.value || '';
+  document.querySelectorAll('.fiori-badge').forEach(b => {
+    const mid = b.dataset.moduleId || '';
+    if (!selectedModule) {
+      b.classList.remove('active');
+    } else {
+      b.classList.toggle('active', mid === selectedModule);
+    }
+  });
+}
+
+// --------- ЗАГРУЗКА instructions.json ---------
 async function loadInstructionsPublic() {
   try {
     const res = await fetch('data/instructions.json');
@@ -164,7 +159,7 @@ async function loadInstructionsPublic() {
   renderInstructionGrid(filtered);
 }
 
-/* ================= MODAL (двухколонка) ================= */
+// --------- МОДАЛКА (двухколоночная) ---------
 function openInstructionModal(inst) {
   const backdrop = document.getElementById('instructionModalBackdrop');
   if (!backdrop) return;
@@ -225,7 +220,6 @@ function openInstructionModal(inst) {
     notesEl.innerHTML = '';
   }
 
-  // prepare media area
   mediaContainer.innerHTML = '';
   const mainPreview = document.createElement('div');
   mainPreview.className = 'modal-main-media';
@@ -250,132 +244,50 @@ function openInstructionModal(inst) {
   }
 
   let currentIndex = 0;
-
-  // renderMain с детекцией типа и фоллбеком при ошибке изображения
   function renderMain(idx) {
     mainPreview.innerHTML = '';
     const m = mediaList[idx];
-    if (!m) return;
-
-    const url = (m.url || '').trim();
-    // decide type robustly:
-    let decidedType = (m.type || '').toLowerCase();
-    // if declared type contradicts extension — prefer extension
-    if (decidedType === 'image' && !isImageByUrl(url)) decidedType = 'file';
-    if (decidedType === 'video' && !isVideoByUrl(url)) decidedType = 'file';
-    if (!decidedType || decidedType === 'file') {
-      if (isImageByUrl(url)) decidedType = 'image';
-      else if (isVideoByUrl(url)) decidedType = 'video';
-      else decidedType = 'file';
-    }
-
-    if (decidedType === 'image') {
+    if (m.type === 'image') {
       const img = document.createElement('img');
-      img.src = url;
-      img.alt = m.filename || fileNameFromUrl(url) || inst.title || 'image';
+      img.src = m.url;
+      img.alt = inst.title || 'image';
       img.style.cursor = 'zoom-in';
-      // если изображение не загрузилось -> показать карточку файла
-      img.addEventListener('error', () => {
-        mainPreview.innerHTML = '';
-        const wrap = document.createElement('div');
-        wrap.style.padding = '16px';
-        wrap.innerHTML = `
-          <div style="display:flex;align-items:center;gap:12px;">
-            <div style="width:56px;height:56px;border-radius:8px;background:#f1f5f9;display:flex;align-items:center;justify-content:center;font-weight:700;color:#374151">FILE</div>
-            <div style="flex:1;">
-              <div style="font-weight:700;">${escapeHtml(m.filename || fileNameFromUrl(url))}</div>
-              <div style="color:#6b7280;font-size:13px;margin-top:6px;">Тип: файл (не изображение)</div>
-            </div>
-            <div style="margin-left:12px"><a class="secondary" href="${url}" download target="_blank">Скачать</a></div>
-          </div>
-        `;
-        mainPreview.appendChild(wrap);
-      });
-      img.addEventListener('click', () => openImageLightbox(url));
+      img.addEventListener('click', () => openImageLightbox(m.url));
       mainPreview.appendChild(img);
-    } else if (decidedType === 'video') {
+    } else {
       const video = document.createElement('video');
-      video.src = url;
+      video.src = m.url;
       video.controls = true;
       video.style.maxHeight = '100%';
-      video.addEventListener('error', () => {
-        mainPreview.innerHTML = `<div style="padding:18px;color:#b91c1c">Не удалось загрузить видео</div>`;
-      });
       mainPreview.appendChild(video);
-    } else {
-      // FILE fallback
-      const wrap = document.createElement('div');
-      wrap.style.padding = '16px';
-      wrap.innerHTML = `
-        <div style="display:flex;align-items:center;gap:12px;">
-          <div style="width:56px;height:56px;border-radius:8px;background:#f1f5f9;display:flex;align-items:center;justify-content:center;font-weight:700;color:#374151">FILE</div>
-          <div style="flex:1;">
-            <div style="font-weight:700;">${escapeHtml(m.filename || fileNameFromUrl(url))}</div>
-            <div style="color:#6b7280;font-size:13px;margin-top:6px;">Тип: файл</div>
-          </div>
-          <div style="margin-left:12px"><a class="secondary" href="${url}" download target="_blank">Скачать</a></div>
-        </div>
-      `;
-      mainPreview.appendChild(wrap);
     }
-
     thumbsColumn.querySelectorAll('.thumb').forEach((t, i) => {
       t.classList.toggle('active', i === idx);
     });
     currentIndex = idx;
   }
 
-  // thumbs generation: показываем thumb или имя файла
   thumbsColumn.innerHTML = '';
   mediaList.forEach((m, i) => {
     const t = document.createElement('div');
     t.className = 'thumb';
     t.dataset.index = i;
-    t.style.display = 'flex';
-    t.style.alignItems = 'center';
-    t.style.justifyContent = 'center';
-    t.style.padding = '4px';
-
-    const url = (m.url || '').trim();
-    const decidedThumbIsImage = (m.type === 'image' && isImageByUrl(url)) || isImageByUrl(url);
-    const decidedThumbIsVideo = (m.type === 'video' && isVideoByUrl(url)) || isVideoByUrl(url);
-
-    if (decidedThumbIsImage) {
+    if (m.type === 'image') {
       const img = document.createElement('img');
-      img.src = url;
-      img.alt = m.filename || fileNameFromUrl(url);
-      img.style.width = '100%';
-      img.style.height = '100%';
-      img.style.objectFit = 'cover';
-      img.addEventListener('error', () => {
-        t.innerHTML = `<div style="padding:6px 8px;font-size:12px;color:#374151;text-align:center;">${escapeHtml(m.filename || fileNameFromUrl(url))}</div>`;
-      });
+      img.src = m.url;
       t.appendChild(img);
-    } else if (decidedThumbIsVideo) {
+    } else {
       const vid = document.createElement('video');
-      vid.src = url;
+      vid.src = m.url;
       vid.muted = true;
       vid.loop = true;
-      vid.play().catch(()=>{});
-      vid.style.width = '100%';
-      vid.style.height = '100%';
-      vid.style.objectFit = 'cover';
+      vid.play().catch(()=>{/* ignore autoplay */});
       t.appendChild(vid);
-    } else {
-      const fname = document.createElement('div');
-      fname.style.padding = '6px 8px';
-      fname.style.fontSize = '12px';
-      fname.style.color = '#374151';
-      fname.style.textAlign = 'center';
-      fname.textContent = m.filename || fileNameFromUrl(url) || 'Файл';
-      t.appendChild(fname);
     }
-
     t.addEventListener('click', () => renderMain(i));
     thumbsColumn.appendChild(t);
   });
 
-  // controls: arrows only if >1 media
   if (mediaList.length > 1) {
     controlsRow.classList.remove('hidden');
     controlsRow.innerHTML = `
@@ -388,32 +300,31 @@ function openInstructionModal(inst) {
       </div>
     `;
 
-    const prevBtn = controlsRow.querySelector('.modal-prev');
-    const nextBtn = controlsRow.querySelector('.modal-next');
-    const dlBtn = controlsRow.querySelector('.modal-download');
-
-    prevBtn.addEventListener('click', () => {
+    controlsRow.querySelector('.modal-prev').addEventListener('click', () => {
       const next = (currentIndex - 1 + mediaList.length) % mediaList.length;
       renderMain(next);
     });
-    nextBtn.addEventListener('click', () => {
+    controlsRow.querySelector('.modal-next').addEventListener('click', () => {
       const next = (currentIndex + 1) % mediaList.length;
       renderMain(next);
     });
-    dlBtn.addEventListener('click', () => {
-      mediaList.forEach(m => {
-        const a = document.createElement('a');
-        a.href = m.url;
-        a.download = m.filename || fileNameFromUrl(m.url);
-        a.target = '_blank';
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
+
+    controlsRow.querySelectorAll('.modal-download')?.forEach(el => {
+      el.addEventListener('click', () => {
+        mediaList.forEach(m => {
+          const a = document.createElement('a');
+          a.href = m.url;
+          a.download = m.url.split('/').pop();
+          a.target = '_blank';
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+        });
       });
     });
   } else {
     controlsRow.classList.add('hidden');
-    // single media download button under thumbs/main
+    // отдельная кнопка загрузки для одного медиа
     const dl = document.createElement('div');
     dl.style.display = 'flex';
     dl.style.justifyContent = 'flex-end';
@@ -425,7 +336,7 @@ function openInstructionModal(inst) {
       const m = mediaList[0];
       const a = document.createElement('a');
       a.href = m.url;
-      a.download = m.filename || fileNameFromUrl(m.url);
+      a.download = m.url.split('/').pop();
       a.target = '_blank';
       document.body.appendChild(a);
       a.click();
@@ -444,14 +355,14 @@ function openInstructionModal(inst) {
   if (left) left.scrollTop = 0;
 }
 
-/* ================= CLOSE MODAL ================= */
+// --------- Закрытие модалки ---------
 function closeInstructionModal() {
   const backdrop = document.getElementById('instructionModalBackdrop');
   if (!backdrop) return;
   backdrop.style.display = 'none';
 }
 
-/* ================= LIGHTBOX ================= */
+// --------- ЛАЙТБОКС ---------
 function openImageLightbox(src) {
   const lb = document.getElementById('imageLightbox');
   const img = document.getElementById('lightboxImg');
@@ -476,7 +387,7 @@ document.addEventListener('keydown', (e) => {
   }
 });
 
-/* ================= LISTENERS ================= */
+// --------- СЛУШАТЕЛИ ---------
 document.getElementById('reloadBtn')?.addEventListener('click', async () => {
   const searchInput = document.getElementById('searchInput');
   const moduleFilter = document.getElementById('moduleFilter');
@@ -540,7 +451,7 @@ document.getElementById('instructionModalBackdrop')?.addEventListener('click', (
   if (e.target.id === 'instructionModalBackdrop') closeInstructionModal();
 });
 
-/* ================= INIT ================= */
+// --------- INIT ---------
 (async function init() {
   await loadModulesPublic();
   await loadInstructionsPublic();
