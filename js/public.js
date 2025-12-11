@@ -94,12 +94,18 @@ function renderInstructionGrid(listData) {
     card.dataset.id = inst.id;
 
     const moduleObj = modulesCache.find(m => m.id === inst.moduleId);
-const code = moduleObj && moduleObj.code ? moduleObj.code : '';
-const name = moduleObj && moduleObj.name ? moduleObj.name : (inst.moduleId || 'Без модуля');
+    const code = moduleObj && moduleObj.code ? moduleObj.code : '';
+    const name = moduleObj && moduleObj.name ? moduleObj.name : (inst.moduleId || 'Без модуля');
 
-const color = moduleObj && moduleObj.color
-  ? moduleObj.color
-  : getColorForModule(code || name || inst.moduleId);
+    const stepsShort = (inst.steps || [])
+      .slice(0, 3)
+      .map((s, idx) => `Шаг ${idx + 1}: ${escapeHtml(s)}`)
+      .join('<br>');
+
+    const hasMoreSteps = (inst.steps || []).length > 3;
+    const notesShort = cropText(inst.notes || '', 180);
+
+    const color = getColorForModule(code || name);
 
     const badgeHtml = code
       ? `<span class="fiori-badge clickable" data-module-id="${escapeHtml(inst.moduleId)}" title="${escapeHtml(name)}">
@@ -280,7 +286,7 @@ function openInstructionModal(inst) {
               <div style="font-weight:700;">${escapeHtml(m.filename || fileNameFromUrl(url))}</div>
               <div style="color:#6b7280;font-size:13px;margin-top:6px;">Тип: файл (не изображение)</div>
             </div>
-            <div style="margin-left:12px"><a class="secondary" href="${url}" download target="_blank"></a></div>
+            <div style="margin-left:12px"><a class="secondary" href="${url}" download target="_blank">Скачать</a></div>
           </div>
         `;
         mainPreview.appendChild(wrap);
@@ -307,7 +313,7 @@ function openInstructionModal(inst) {
             <div style="font-weight:700;">${escapeHtml(m.filename || fileNameFromUrl(url))}</div>
             <div style="color:#6b7280;font-size:13px;margin-top:6px;">Тип: файл</div>
           </div>
-          <div style="margin-left:12px"><a class="secondary" href="${url}" download target="_blank"></a></div>
+          <div style="margin-left:12px"><a class="secondary" href="${url}" download target="_blank">Скачать</a></div>
         </div>
       `;
       mainPreview.appendChild(wrap);
@@ -378,7 +384,7 @@ function openInstructionModal(inst) {
         <button type="button" class="secondary modal-next">▶</button>
       </div>
       <div style="display:flex;gap:8px;">
-        <button type="button" class="secondary modal-download"></button>
+        <button type="button" class="secondary modal-download">Скачать</button>
       </div>
     `;
 
@@ -548,6 +554,3 @@ document.getElementById('instructionModalBackdrop')?.addEventListener('click', (
 
   updateActiveBadges();
 })();
-
-
-
