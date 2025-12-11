@@ -94,18 +94,12 @@ function renderInstructionGrid(listData) {
     card.dataset.id = inst.id;
 
     const moduleObj = modulesCache.find(m => m.id === inst.moduleId);
-    const code = moduleObj && moduleObj.code ? moduleObj.code : '';
-    const name = moduleObj && moduleObj.name ? moduleObj.name : (inst.moduleId || 'Без модуля');
+const code = moduleObj && moduleObj.code ? moduleObj.code : '';
+const name = moduleObj && moduleObj.name ? moduleObj.name : (inst.moduleId || 'Без модуля');
 
-    const stepsShort = (inst.steps || [])
-      .slice(0, 3)
-      .map((s, idx) => `Шаг ${idx + 1}: ${escapeHtml(s)}`)
-      .join('<br>');
-
-    const hasMoreSteps = (inst.steps || []).length > 3;
-    const notesShort = cropText(inst.notes || '', 180);
-
-    const color = getColorForModule(code || name);
+const color = moduleObj && moduleObj.color
+  ? moduleObj.color
+  : getColorForModule(code || name || inst.moduleId);
 
     const badgeHtml = code
       ? `<span class="fiori-badge clickable" data-module-id="${escapeHtml(inst.moduleId)}" title="${escapeHtml(name)}">
@@ -554,5 +548,6 @@ document.getElementById('instructionModalBackdrop')?.addEventListener('click', (
 
   updateActiveBadges();
 })();
+
 
 
