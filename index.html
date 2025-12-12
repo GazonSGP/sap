@@ -1,67 +1,75 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="ru">
 <head>
   <meta charset="UTF-8" />
-  <title>SAP Инструкции</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SAP Instructions — Aurora 2040</title>
+
+  <!-- Основные стили -->
   <link rel="stylesheet" href="css/styles.css" />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <!-- Эффекты и анимации (подгрузится позже) -->
+  <script defer src="js/ui-enhancements.js"></script>
+
+  <!-- Логика отображения инструкций -->
+  <script defer src="js/public.js"></script>
 </head>
+
 <body>
-<header>
-  <div><strong>SAP Инструкции</strong></div>
-  <a href="https://github.com/GazonSGP/sap" style="color:#e5e7eb; text-decoration:none;" target="_blank">
-    Репозиторий GitHub
-  </a>
-</header>
-<main>
-  <section class="card">
-    <h2>Поиск инструкций</h2>
-    <div style="display:flex; gap:8px; flex-wrap:wrap;">
-      <input id="searchInput" placeholder="Поиск по названию, транзакции или описанию" />
-      <select id="moduleFilter" style="max-width:220px;">
-        <option value="">Все модули</option>
-      </select>
-      <button id="reloadBtn" type="button">Обновить</button>
+
+  <!-- -------------------------------------- -->
+  <!-- ⭐️ ГЛОБАЛЬНЫЙ ХЕДЕР (Fiori 2040 Aurora) -->
+  <!-- -------------------------------------- -->
+  <header class="aurora-header">
+    <div class="header-left">
+      <div class="logo">
+        <span class="logo-dot"></span>
+        <span class="logo-text">SAP Instructions 2040</span>
+      </div>
     </div>
+
+    <div class="header-right">
+      <button id="reloadBtn" class="holo-button small">Обновить</button>
+    </div>
+  </header>
+
+  <!-- -------------------------------------- -->
+  <!-- 🔎 ПАНЕЛЬ ПОИСКА И ФИЛЬТРОВ -->
+  <!-- -------------------------------------- -->
+  <section class="filters-panel">
+    <input
+      id="searchInput"
+      class="search-field"
+      type="text"
+      placeholder="Поиск по названию, транзакции или примечаниям..."
+    />
+
+    <select id="moduleFilter" class="module-select">
+      <option value="">Все модули</option>
+    </select>
   </section>
 
-  <section id="emptyState" class="card" style="display:none;">
-    <h3>Пока нет ни одной инструкции</h3>
-    <p>Добавьте модули и инструкции, отредактировав файлы <code>docs/data/*.json</code> в репозитории.</p>
-  </section>
+  <!-- -------------------------------------- -->
+  <!-- 🧊 СЕТКА ИНСТРУКЦИЙ (Holo Cards) -->
+  <!-- -------------------------------------- -->
+  <main>
+    <div id="emptyState" class="empty-state">Инструкции не найдены</div>
+    <div id="instructionsSection" class="instructions-grid"></div>
+  </main>
 
-  <section id="instructionsSection" class="list"></section>
-</main>
-
-<!-- Модальное окно для просмотра инструкции -->
-<div id="instructionModalBackdrop" class="modal-backdrop" style="display:none;">
-  <div class="modal-window">
-    <div class="modal-header">
-      <h2 id="modalTitle"></h2>
-      <button id="modalCloseBtn" class="secondary" type="button">Закрыть</button>
-    </div>
-    <div class="modal-body">
-      <p><strong>Транзакция:</strong> <span id="modalTransaction"></span></p>
-      <div id="modalSteps"></div>
-      <div id="modalNotes"></div>
-      <div id="modalMedia" class="modal-media"></div>
-    </div>
+  <!-- -------------------------------------- -->
+  <!-- 🪟 МОДАЛЬНОЕ ОКНО ДЛЯ ИНСТРУКЦИЙ -->
+  <!-- -------------------------------------- -->
+  <div id="instructionModalBackdrop" class="modal-backdrop">
+    <div class="modal-window holo-modal"></div>
   </div>
-</div>
 
-<!-- Лайтбокс для увеличения картинок -->
-<div id="imageLightbox" class="image-lightbox" style="display:none;">
-  <div class="image-lightbox-inner">
-    <img id="lightboxImg" src="" alt="">
+  <!-- -------------------------------------- -->
+  <!-- 🔍 LIGHTBOX ДЛЯ ИЗОБРАЖЕНИЙ -->
+  <!-- -------------------------------------- -->
+  <div id="imageLightbox" class="lightbox">
+    <img id="lightboxImg" />
   </div>
-</div>
-
-<script src="js/public.js"></script>
-<script src="js/public.js"></script>
-<script src="js/ui-enhancements.js" defer></script>
 
 </body>
 </html>
-
-
-
