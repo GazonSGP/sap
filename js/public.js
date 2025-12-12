@@ -1,564 +1,561 @@
-// docs/js/public.js — Готовая версия публичного скрипта
-// Поддержка image|video|file, двухколоночной модалки, скачивания, безопасный рендер
+/* public/js/public.js
+   Aurora 2040 — public logic
+   - Loads data from /data/modules.json and /data/instructions.json
+   - Renders Holo cards (.instruction-card)
+   - Badge filtering, search, reload
+   - Two-column modal (text left, media right)
+   - Lightbox for images
+   - Media types: image | video | file (downloadable)
+*/
 
-let modulesCache = [];
-let instructionsCache = [];
+(() => {
+  // Caches
+  let modulesCache = [];
+  let instructionsCache = [];
 
-/* ================= HELPERS ================= */
-function escapeHtml(str) {
-  if (str === null || str === undefined) return '';
-  return String(str)
-    .replaceAll('&', '&amp;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;')
-    .replaceAll('"', '&quot;')
-    .replaceAll("'", '&#039;');
-}
-
-function cropText(text, maxLength = 180) {
-  if (!text) return '';
-  if (text.length <= maxLength) return text;
-  return text.substring(0, maxLength) + '...';
-}
-
-function getColorForModule(code) {
-  const palette = [
-    '#0a6ed1', '#0b9f6b', '#f97316', '#7c3aed', '#ef4444',
-    '#06b6d4', '#f59e0b', '#10b981', '#6366f1', '#db2777'
-  ];
-  if (!code) return palette[0];
-  let h = 0;
-  for (let i = 0; i < code.length; i++) {
-    h = (h << 5) - h + code.charCodeAt(i);
-    h |= 0;
+  // Helpers
+  function escapeHtml(str) {
+    if (str === null || str === undefined) return '';
+    return String(str)
+      .replaceAll('&', '&amp;')
+      .replaceAll('<', '&lt;')
+      .replaceAll('>', '&gt;')
+      .replaceAll('"', '&quot;')
+      .replaceAll("'", '&#039;');
   }
-  return palette[Math.abs(h) % palette.length];
-}
 
-const IMAGE_EXTS = ['jpg','jpeg','png','gif','webp','svg','bmp','tiff','ico'];
-const VIDEO_EXTS = ['mp4','webm','ogg','mov','mkv'];
+  function fileNameFromUrl(url = '') {
+    try {
+      return decodeURIComponent(url.split('?')[0].split('/').pop());
+    } catch (e) { return url.split('/').pop(); }
+  }
 
-function extFromUrl(url) {
-  if (!url) return '';
-  try {
-    const u = url.split('?')[0];
+  const IMAGE_EXTS = ['jpg','jpeg','png','gif','webp','svg','bmp','tiff','ico'];
+  const VIDEO_EXTS = ['mp4','webm','ogg','mov','mkv'];
+
+  function extFromUrl(url = '') {
+    const u = (url || '').split('?')[0];
     const m = u.toLowerCase().match(/\.([a-z0-9]+)$/);
     return m ? m[1] : '';
-  } catch (e) { return ''; }
-}
-function isImageByUrl(url) { return IMAGE_EXTS.includes(extFromUrl(url)); }
-function isVideoByUrl(url) { return VIDEO_EXTS.includes(extFromUrl(url)); }
-function fileNameFromUrl(url) {
-  if (!url) return '';
-  try { return decodeURIComponent((url||'').split('/').pop().split('?')[0]); } catch(e) { return (url||'').split('/').pop(); }
-}
+  }
+  function isImageUrl(url) { return IMAGE_EXTS.includes(extFromUrl(url)); }
+  function isVideoUrl(url) { return VIDEO_EXTS.includes(extFromUrl(url)); }
 
-/* ================= LOAD modules.json ================= */
-async function loadModulesPublic() {
-  try {
-    const res = await fetch('data/modules.json', { cache: 'no-store' });
-    modulesCache = await res.json();
-  } catch (err) {
-    console.error('Ошибка загрузки modules.json', err);
-    modulesCache = [];
+  function cropText(text = '', max = 180) {
+    if (!text) return '';
+    return text.length <= max ? text : text.slice(0, max) + '...';
   }
 
-  const select = document.getElementById('moduleFilter');
-  if (!select) return;
-  select.innerHTML = '<option value="">Все модули</option>';
-  modulesCache.forEach(m => {
-    const opt = document.createElement('option');
-    opt.value = m.id;
-    opt.textContent = `${m.code || ''} – ${m.name || ''}`.trim();
-    select.appendChild(opt);
-  });
-}
-
-/* ================= RENDER GRID ================= */
-function renderInstructionGrid(listData) {
-  const list = document.getElementById('instructionsSection');
-  const empty = document.getElementById('emptyState');
-
-  list.innerHTML = '';
-
-  if (!listData || !listData.length) {
-    if (empty) empty.style.display = 'block';
-    return;
-  }
-  if (empty) empty.style.display = 'none';
-
-  listData.forEach(inst => {
-    const card = document.createElement('div');
-    card.className = 'card instruction-card';
-    card.dataset.id = inst.id;
-
-    const moduleObj = modulesCache.find(m => m.id === inst.moduleId);
-    const code = moduleObj && moduleObj.code ? moduleObj.code : '';
-    const name = moduleObj && moduleObj.name ? moduleObj.name : (inst.moduleId || 'Без модуля');
-
-    const stepsShort = (inst.steps || [])
-      .slice(0, 3)
-      .map((s, idx) => `Шаг ${idx + 1}: ${escapeHtml(s)}`)
-      .join('<br>');
-
-    const hasMoreSteps = (inst.steps || []).length > 3;
-    const notesShort = cropText(inst.notes || '', 180);
-
-    // color: prefer moduleObj.color if present, otherwise fallback to palette based on code/name
-    const color = (moduleObj && moduleObj.color) ? moduleObj.color : getColorForModule(code || name || inst.moduleId);
-
-    // badge: show code or first letter; clickable and contains moduleId
-    const badgeHtml = `<span class="fiori-badge clickable" data-module-id="${escapeHtml(inst.moduleId || '')}" title="${escapeHtml(name)}">
-                         <span class="fiori-badge-code" style="background:${escapeHtml(color)}">${escapeHtml(code || (name && name[0]) || '')}</span>
-                       </span>`;
-
-    card.innerHTML = `
-      <div class="meta">${badgeHtml}</div>
-      <h3>${escapeHtml(inst.title || 'Без названия')}</h3>
-      <p class="meta"><strong>Транзакция:</strong> ${escapeHtml(inst.transactionCode || '-')}</p>
-      <div class="content">
-        ${stepsShort ? `<p>${stepsShort}${hasMoreSteps ? '<br>...' : ''}</p>` : '<p>Шаги не указаны</p>'}
-        ${notesShort ? `<p><strong>Примечания:</strong> ${escapeHtml(notesShort)}</p>` : ''}
-      </div>
-      <div class="footer" style="margin-top:8px; display:flex; gap:8px; align-items:center;">
-        <button type="button" class="secondary open-instruction" data-id="${escapeHtml(inst.id)}">Увидеть больше</button>
-      </div>
-    `;
-    list.appendChild(card);
-  });
-
-  updateActiveBadges();
-}
-
-/* ================= LOAD instructions.json ================= */
-async function loadInstructionsPublic() {
-  try {
-    const res = await fetch('data/instructions.json', { cache: 'no-store' });
-    instructionsCache = await res.json();
-  } catch (err) {
-    console.error('Ошибка загрузки instructions.json', err);
-    instructionsCache = [];
+  // Basic deterministic color-picker based on module code/name
+  function getColorForModule(codeOrName = '') {
+    const palette = [
+      '#0a6ed1', '#0b9f6b', '#f97316', '#7c3aed', '#ef4444',
+      '#06b6d4', '#f59e0b', '#10b981', '#6366f1', '#db2777',
+      '#ff6b6b', '#00bcd4', '#ff8a65'
+    ];
+    if (!codeOrName) return palette[0];
+    let h = 0;
+    for (let i = 0; i < codeOrName.length; i++) {
+      h = ((h << 5) - h) + codeOrName.charCodeAt(i);
+      h |= 0;
+    }
+    return palette[Math.abs(h) % palette.length];
   }
 
-  const search = (document.getElementById('searchInput')?.value || '').trim().toLowerCase();
-  const moduleId = (document.getElementById('moduleFilter')?.value || '').trim();
+  // DOM shortcuts
+  const $ = id => document.getElementById(id);
 
-  let filtered = instructionsCache.slice();
-
-  if (moduleId) {
-    filtered = filtered.filter(i => i.moduleId === moduleId);
+  // Load modules
+  async function loadModules() {
+    try {
+      const res = await fetch('/data/modules.json', { cache: 'no-store' });
+      modulesCache = await res.json();
+    } catch (e) {
+      console.error('loadModules error', e);
+      modulesCache = [];
+    }
+    populateModuleFilter();
   }
 
-  if (search) {
-    filtered = filtered.filter(i => {
-      const inTitle = (i.title || '').toLowerCase().includes(search);
-      const inTx = (i.transactionCode || '').toLowerCase().includes(search);
-      const inNotes = (i.notes || '').toLowerCase().includes(search);
-      return inTitle || inTx || inNotes;
+  function populateModuleFilter() {
+    const sel = $('moduleFilter');
+    if (!sel) return;
+    const prev = sel.value || '';
+    sel.innerHTML = '<option value="">Все модули</option>';
+    modulesCache.forEach(m => {
+      const opt = document.createElement('option');
+      opt.value = m.id;
+      opt.textContent = (m.code ? (m.code + ' — ') : '') + (m.name || '');
+      sel.appendChild(opt);
+    });
+    if (prev) sel.value = prev;
+    updateBadgeColors();
+  }
+
+  // Load instructions
+  async function loadInstructions() {
+    try {
+      const res = await fetch('/data/instructions.json', { cache: 'no-store' });
+      instructionsCache = await res.json();
+    } catch (e) {
+      console.error('loadInstructions error', e);
+      instructionsCache = [];
+    }
+    renderInstructionGrid(instructionsCache);
+  }
+
+  // Render grid
+  function renderInstructionGrid(listData) {
+    const grid = $('instructionsSection');
+    const empty = $('emptyState');
+    if (!grid) return;
+    grid.innerHTML = '';
+
+    const items = Array.isArray(listData) ? listData : [];
+    if (!items.length) {
+      if (empty) empty.style.display = 'block';
+      return;
+    }
+    if (empty) empty.style.display = 'none';
+
+    items.forEach(inst => {
+      const card = document.createElement('article');
+      card.className = 'instruction-card';
+      card.tabIndex = 0;
+      card.dataset.id = inst.id || '';
+
+      // module info
+      const moduleObj = modulesCache.find(m => m.id === inst.moduleId) || null;
+      const moduleCode = moduleObj && moduleObj.code ? moduleObj.code : '';
+      const moduleName = moduleObj && moduleObj.name ? moduleObj.name : (inst.moduleId || '');
+      const color = getColorForModule(moduleCode || moduleName);
+
+      // set per-card module glow var (used in CSS)
+      card.style.setProperty('--module-glow', color);
+
+      // badge
+      const badge = document.createElement('div');
+      badge.className = 'fiori-badge clickable';
+      badge.dataset.moduleId = inst.moduleId || '';
+      badge.title = moduleName || '';
+      const badgeCode = document.createElement('span');
+      badgeCode.className = 'fiori-badge-code';
+      badgeCode.style.background = color;
+      badgeCode.textContent = moduleCode || (moduleName ? moduleName[0] : '');
+      badge.appendChild(badgeCode);
+
+      // title
+      const title = document.createElement('h3');
+      title.innerHTML = escapeHtml(inst.title || '(без названия)');
+
+      // transaction row
+      const tx = document.createElement('p');
+      tx.className = 'small';
+      tx.innerHTML = `<strong>Транзакция:</strong> ${escapeHtml(inst.transactionCode || '-')}`;
+
+      // steps preview (first 2-3)
+      const steps = (inst.steps || []).slice(0, 3).map((s, idx) => `Шаг ${idx+1}: ${escapeHtml(s)}`).join('<br>');
+      const more = (inst.steps || []).length > 3 ? '<br>...' : '';
+
+      const content = document.createElement('div');
+      content.className = 'card-content';
+      content.innerHTML = `${steps ? `<p>${steps}${more}</p>` : '<p><em>Шаги не указаны</em></p>'}${inst.notes ? `<p class="small"><strong>Примечания:</strong> ${escapeHtml(cropText(inst.notes, 160))}</p>` : ''}`;
+
+      // footer with button
+      const footer = document.createElement('div');
+      footer.className = 'card-footer';
+      footer.style.marginTop = '12px';
+      const btn = document.createElement('button');
+      btn.className = 'holo-button';
+      btn.textContent = 'Увидеть больше';
+      btn.dataset.id = inst.id || '';
+      footer.appendChild(btn);
+
+      // assemble
+      const metaWrap = document.createElement('div');
+      metaWrap.className = 'meta';
+      metaWrap.style.display = 'flex';
+      metaWrap.style.alignItems = 'center';
+      metaWrap.style.gap = '12px';
+      metaWrap.appendChild(badge);
+      // append
+      card.appendChild(metaWrap);
+      card.appendChild(title);
+      card.appendChild(tx);
+      card.appendChild(content);
+      card.appendChild(footer);
+
+      // events
+      badge.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const mid = badge.dataset.moduleId || '';
+        if (!mid) return;
+        $('moduleFilter').value = mid;
+        applyFilters();
+      });
+
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const id = btn.dataset.id;
+        const instObj = instructionsCache.find(x => x.id === id);
+        if (instObj) openInstructionModal(instObj);
+      });
+
+      card.addEventListener('click', (e) => {
+        const instObj = instructionsCache.find(x => x.id === card.dataset.id);
+        if (instObj) openInstructionModal(instObj);
+      });
+
+      grid.appendChild(card);
+    });
+
+    // re-init enhancement hooks (parallax, pulses) — UI enhancement script can also hook into DOM
+    if (window.__uiEnhanceReinit) window.__uiEnhanceReinit();
+  }
+
+  // Apply search + module filter
+  function applyFilters() {
+    const q = ($('searchInput')?.value || '').trim().toLowerCase();
+    const moduleId = ($('moduleFilter')?.value || '').trim();
+    let filtered = instructionsCache.slice();
+
+    if (moduleId) filtered = filtered.filter(i => i.moduleId === moduleId);
+    if (q) filtered = filtered.filter(i => {
+      const inTitle = (i.title || '').toLowerCase().includes(q);
+      const inTx = (i.transactionCode || '').toLowerCase().includes(q);
+      const inNotes = (i.notes || '').toLowerCase().includes(q);
+      const inSteps = (Array.isArray(i.steps) ? i.steps.join(' ') : '').toLowerCase().includes(q);
+      return inTitle || inTx || inNotes || inSteps;
+    });
+
+    renderInstructionGrid(filtered);
+    updateActiveBadges();
+  }
+
+  function updateActiveBadges() {
+    const activeModule = ($('moduleFilter')?.value || '');
+    document.querySelectorAll('.fiori-badge').forEach(b => {
+      const mid = b.dataset.moduleId || '';
+      b.classList.toggle('active', activeModule && (mid === activeModule));
     });
   }
 
-  renderInstructionGrid(filtered);
-}
+  // ------------------ MODAL ------------------
+  function openInstructionModal(inst) {
+    const backdrop = $('instructionModalBackdrop');
+    if (!backdrop) return;
+    const modal = backdrop.querySelector('.modal-window');
+    if (!modal) return;
 
-/* ================= UPDATE BADGES ================= */
-function updateActiveBadges() {
-  const selectedModule = document.getElementById('moduleFilter')?.value || '';
-  document.querySelectorAll('.fiori-badge').forEach(b => {
-    const mid = b.dataset.moduleId || '';
-    if (!selectedModule) {
-      b.classList.remove('active');
+    // Compose modal content (left text, right media)
+    modal.innerHTML = `
+      <div class="modal-left" role="document" tabindex="0">
+        <div style="display:flex;gap:12px;align-items:center;margin-bottom:8px">
+          <div id="modalBadge"></div>
+          <h2 id="modalTitle" style="margin:0;font-size:18px"></h2>
+        </div>
+        <p style="margin:6px 0 12px 0;"><strong>Транзакция:</strong> <span id="modalTx"></span></p>
+        <div id="modalSteps"></div>
+        <div id="modalNotes" style="margin-top:10px"></div>
+      </div>
+      <div class="modal-right" aria-hidden="false">
+        <div id="modalMediaArea">
+          <div class="modal-main-media" id="modalMainPreview"></div>
+          <div class="modal-thumbs" id="modalThumbs"></div>
+          <div class="media-controls" id="modalControls"></div>
+        </div>
+      </div>
+    `;
+
+    // fill textual
+    $('modalTitle').textContent = inst.title || 'Инструкция';
+    $('modalTx').textContent = inst.transactionCode || '-';
+
+    // badge
+    const moduleObj = modulesCache.find(m => m.id === inst.moduleId) || null;
+    const code = moduleObj && moduleObj.code ? moduleObj.code : '';
+    const name = moduleObj && moduleObj.name ? moduleObj.name : (inst.moduleId || '');
+    const color = getColorForModule(code || name);
+    $('modalBadge').innerHTML = `<span class="fiori-badge"><span class="fiori-badge-code" style="background:${color}">${escapeHtml(code || (name?name[0]:''))}</span></span>`;
+
+    // steps
+    if (inst.steps && inst.steps.length) {
+      const stepsHtml = inst.steps.map((s, idx) => `<div class="step">Шаг ${idx+1}: ${escapeHtml(s)}</div>`).join('');
+      $('modalSteps').innerHTML = `<h3>Шаги</h3><div class="steps-block">${stepsHtml}</div>`;
     } else {
-      b.classList.toggle('active', mid === selectedModule);
+      $('modalSteps').innerHTML = '<p><em>Шаги не указаны</em></p>';
     }
-  });
-}
 
-/* ================= MODAL (двухколонка) ================= */
-function openInstructionModal(inst) {
-  const backdrop = document.getElementById('instructionModalBackdrop');
-  if (!backdrop) return;
-  const modalWindow = backdrop.querySelector('.modal-window');
+    // notes
+    if (inst.notes) {
+      $('modalNotes').innerHTML = `<h3>Примечания</h3><div class="modal-notes">${escapeHtml(inst.notes)}</div>`;
+    } else {
+      $('modalNotes').innerHTML = '';
+    }
 
-  modalWindow.innerHTML = `
-    <div class="modal-header" role="banner">
-      <div style="display:flex; gap:12px; align-items:center;">
-        <div id="modalBadgePlaceholder"></div>
-        <h2 id="modalTitle" style="margin:0; font-size:18px;"></h2>
-      </div>
-      <div style="display:flex; gap:8px; align-items:center;">
-        <button id="modalCloseBtn" class="secondary" type="button">Закрыть</button>
-      </div>
-    </div>
+    // media
+    const mediaList = Array.isArray(inst.media) ? inst.media.slice() : [];
+    const mainPreview = $('modalMainPreview');
+    const thumbs = $('modalThumbs');
+    const controls = $('modalControls');
 
-    <div class="modal-left" aria-live="polite" style="padding-right:6px;">
-      <p style="margin:6px 0; font-size:13px;"><strong>Транзакция:</strong> <span id="modalTransaction"></span></p>
-      <div id="modalSteps"></div>
-      <div id="modalNotes"></div>
-    </div>
-
-    <div id="modalMedia" class="modal-right" aria-hidden="false"></div>
-  `;
-
-  const titleEl = modalWindow.querySelector('#modalTitle');
-  const txEl = modalWindow.querySelector('#modalTransaction');
-  const stepsEl = modalWindow.querySelector('#modalSteps');
-  const notesEl = modalWindow.querySelector('#modalNotes');
-  const mediaContainer = modalWindow.querySelector('#modalMedia');
-  const badgePlaceholder = modalWindow.querySelector('#modalBadgePlaceholder');
-  const closeBtn = modalWindow.querySelector('#modalCloseBtn');
-
-  titleEl.textContent = inst.title || 'Инструкция';
-  txEl.textContent = inst.transactionCode || '-';
-
-  const moduleObj = modulesCache.find(m => m.id === inst.moduleId);
-  const code = moduleObj && moduleObj.code ? moduleObj.code : '';
-  const name = moduleObj && moduleObj.name ? moduleObj.name : (inst.moduleId || 'Без модуля');
-  // prefer explicit module color
-  const color = (moduleObj && moduleObj.color) ? moduleObj.color : getColorForModule(code || name || inst.moduleId);
-  const badgeHtml = `<span class="fiori-badge" title="${escapeHtml(name)}"><span class="fiori-badge-code" style="background:${escapeHtml(color)}">${escapeHtml(code || (name && name[0]) || '')}</span></span>`;
-  badgePlaceholder.innerHTML = badgeHtml;
-
-  if (inst.steps && inst.steps.length) {
-    const stepsHtml = inst.steps
-      .map((s, idx) => `<div class="step">Шаг ${idx + 1}: ${escapeHtml(s)}</div>`)
-      .join('');
-    stepsEl.innerHTML = `<h3>Шаги</h3><div class="steps-block">${stepsHtml}</div>`;
-  } else {
-    stepsEl.innerHTML = '<p><em>Шаги не указаны</em></p>';
-  }
-
-  if (inst.notes) {
-    notesEl.innerHTML = `<h3>Примечания</h3><div class="modal-notes">${escapeHtml(inst.notes)}</div>`;
-  } else {
-    notesEl.innerHTML = '';
-  }
-
-  // prepare media area
-  mediaContainer.innerHTML = '';
-  const mainPreview = document.createElement('div');
-  mainPreview.className = 'modal-main-media';
-  const thumbsColumn = document.createElement('div');
-  thumbsColumn.className = 'modal-thumbs';
-  const controlsRow = document.createElement('div');
-  controlsRow.className = 'media-controls';
-
-  mediaContainer.appendChild(mainPreview);
-  mediaContainer.appendChild(thumbsColumn);
-  mediaContainer.appendChild(controlsRow);
-
-  const mediaList = Array.isArray(inst.media) ? inst.media.slice() : [];
-
-  if (!mediaList.length) {
-    mainPreview.innerHTML = '<div style="padding:18px;color:#6b7280">Нет медиа</div>';
-    controlsRow.classList.add('hidden');
-    thumbsColumn.innerHTML = '';
-    backdrop.style.display = 'flex';
-    closeBtn.addEventListener('click', closeInstructionModal);
-    return;
-  }
-
-  let currentIndex = 0;
-
-  // renderMain с детекцией типа и фоллбеком при ошибке изображения
-  function renderMain(idx) {
     mainPreview.innerHTML = '';
-    const m = mediaList[idx];
-    if (!m) return;
+    thumbs.innerHTML = '';
+    controls.innerHTML = '';
 
-    const url = (m.url || '').trim();
-    // decide type robustly:
-    let decidedType = (m.type || '').toLowerCase();
-    // if declared type contradicts extension — prefer extension
-    if (decidedType === 'image' && !isImageByUrl(url)) decidedType = 'file';
-    if (decidedType === 'video' && !isVideoByUrl(url)) decidedType = 'file';
-    if (!decidedType || decidedType === 'file') {
-      if (isImageByUrl(url)) decidedType = 'image';
-      else if (isVideoByUrl(url)) decidedType = 'video';
-      else decidedType = 'file';
-    }
+    if (!mediaList.length) {
+      mainPreview.innerHTML = `<div style="padding:20px;color:#94a3b8">Нет медиа</div>`;
+      controls.classList.add('hidden');
+    } else {
+      // prepare thumbs
+      mediaList.forEach((m, idx) => {
+        const t = document.createElement('div');
+        t.className = 'thumb';
+        t.dataset.index = idx;
+        // decide thumb content
+        if ((m.type === 'image' && isImageUrl(m.url)) || isImageUrl(m.url)) {
+          const img = document.createElement('img');
+          img.src = m.url;
+          img.alt = m.filename || fileNameFromUrl(m.url);
+          img.style.width = '100%';
+          img.style.height = '100%';
+          img.style.objectFit = 'cover';
+          img.addEventListener('error', () => {
+            t.innerHTML = `<div class="small">${escapeHtml(m.filename || fileNameFromUrl(m.url) || 'Файл')}</div>`;
+          });
+          t.appendChild(img);
+        } else if ((m.type === 'video' && isVideoUrl(m.url)) || isVideoUrl(m.url)) {
+          const vid = document.createElement('video');
+          vid.src = m.url;
+          vid.muted = true; vid.loop = true; vid.autoplay = true;
+          vid.style.width = '100%'; vid.style.height = '100%'; vid.style.objectFit = 'cover';
+          t.appendChild(vid);
+        } else {
+          t.innerHTML = `<div style="padding:8px;text-align:center;font-size:13px;color:#0b1220">${escapeHtml(m.filename || fileNameFromUrl(m.url) || 'Файл')}</div>`;
+        }
+        t.addEventListener('click', () => renderMain(idx));
+        thumbs.appendChild(t);
+      });
 
-    if (decidedType === 'image') {
-      const img = document.createElement('img');
-      img.src = url;
-      img.alt = m.filename || fileNameFromUrl(url) || inst.title || 'image';
-      img.style.cursor = 'zoom-in';
-      img.addEventListener('error', () => {
+      let currentIndex = 0;
+      function renderMain(i) {
+        currentIndex = i;
         mainPreview.innerHTML = '';
-        const wrap = document.createElement('div');
-        wrap.style.padding = '16px';
-        wrap.innerHTML = `
-          <div style="display:flex;align-items:center;gap:12px;">
-            <div style="width:56px;height:56px;border-radius:8px;background:#f1f5f9;display:flex;align-items:center;justify-content:center;font-weight:700;color:#374151">FILE</div>
-            <div style="flex:1;">
-              <div style="font-weight:700;">${escapeHtml(m.filename || fileNameFromUrl(url))}</div>
-              <div style="color:#6b7280;font-size:13px;margin-top:6px;">Тип: файл (не изображение)</div>
+        const m = mediaList[i];
+        if (!m) return;
+        const url = m.url || '';
+        // determine type robustly
+        let type = (m.type || '').toLowerCase();
+        if (!type) {
+          if (isImageUrl(url)) type = 'image';
+          else if (isVideoUrl(url)) type = 'video';
+          else type = 'file';
+        } else {
+          // sanity: if declared image but extension not image -> fallback to file
+          if (type === 'image' && !isImageUrl(url)) type = 'file';
+          if (type === 'video' && !isVideoUrl(url)) type = 'file';
+        }
+
+        if (type === 'image') {
+          const img = document.createElement('img');
+          img.src = url;
+          img.alt = m.filename || fileNameFromUrl(url);
+          img.style.maxWidth = '100%';
+          img.style.maxHeight = '100%';
+          img.addEventListener('click', () => openImageLightbox(url));
+          img.addEventListener('error', () => {
+            mainPreview.innerHTML = `<div style="padding:16px;color:#b91c1c">Не удалось загрузить изображение</div>`;
+          });
+          mainPreview.appendChild(img);
+        } else if (type === 'video') {
+          const video = document.createElement('video');
+          video.src = url;
+          video.controls = true;
+          video.style.maxHeight = '100%';
+          video.addEventListener('error', () => {
+            mainPreview.innerHTML = `<div style="padding:16px;color:#b91c1c">Не удалось загрузить видео</div>`;
+          });
+          mainPreview.appendChild(video);
+        } else {
+          // file fallback card with download
+          const wrap = document.createElement('div');
+          wrap.className = 'file-card';
+          wrap.style.display = 'flex';
+          wrap.style.alignItems = 'center';
+          wrap.style.justifyContent = 'space-between';
+          wrap.innerHTML = `
+            <div style="display:flex;gap:12px;align-items:center;">
+              <div class="icon" style="width:56px;height:56px;border-radius:10px;background:linear-gradient(180deg,#f8fafc,#eef2ff);display:flex;align-items:center;justify-content:center;color:#0b1220;font-weight:700">FILE</div>
+              <div>
+                <div style="font-weight:700">${escapeHtml(m.filename || fileNameFromUrl(url) || 'Файл')}</div>
+                <div class="small" style="color:#64748b;margin-top:6px">Тип: файл</div>
+              </div>
             </div>
-            <div style="margin-left:12px"><a class="secondary" href="${escapeHtml(url)}" download target="_blank">Скачать</a></div>
+            <div><a class="holo-button" href="${url}" download target="_blank">Скачать</a></div>
+          `;
+          mainPreview.appendChild(wrap);
+        }
+
+        // mark active thumb
+        thumbs.querySelectorAll('.thumb').forEach((t, idx) => t.classList.toggle('active', idx === i));
+      }
+
+      // controls (prev/next/download)
+      if (mediaList.length > 1) {
+        controls.classList.remove('hidden');
+        controls.innerHTML = `
+          <div style="display:flex;gap:8px">
+            <button class="holo-button modal-prev">◀</button>
+            <button class="holo-button modal-next">▶</button>
+          </div>
+          <div style="display:flex;gap:8px">
+            <button class="holo-button modal-download">Скачать всё</button>
           </div>
         `;
-        mainPreview.appendChild(wrap);
-      });
-      img.addEventListener('click', () => openImageLightbox(url));
-      mainPreview.appendChild(img);
-    } else if (decidedType === 'video') {
-      const video = document.createElement('video');
-      video.src = url;
-      video.controls = true;
-      video.style.maxHeight = '100%';
-      video.addEventListener('error', () => {
-        mainPreview.innerHTML = `<div style="padding:18px;color:#b91c1c">Не удалось загрузить видео</div>`;
-      });
-      mainPreview.appendChild(video);
-    } else {
-      // FILE fallback
-      const wrap = document.createElement('div');
-      wrap.style.padding = '16px';
-      wrap.innerHTML = `
-        <div style="display:flex;align-items:center;gap:12px;">
-          <div style="width:56px;height:56px;border-radius:8px;background:#f1f5f9;display:flex;align-items:center;justify-content:center;font-weight:700;color:#374151">FILE</div>
-          <div style="flex:1;">
-            <div style="font-weight:700;">${escapeHtml(m.filename || fileNameFromUrl(url))}</div>
-            <div style="color:#6b7280;font-size:13px;margin-top:6px;">Тип: файл</div>
-          </div>
-          <div style="margin-left:12px"><a class="secondary" href="${escapeHtml(url)}" download target="_blank">Скачать</a></div>
-        </div>
-      `;
-      mainPreview.appendChild(wrap);
+        controls.querySelector('.modal-prev').addEventListener('click', () => {
+          renderMain((currentIndex - 1 + mediaList.length) % mediaList.length);
+        });
+        controls.querySelector('.modal-next').addEventListener('click', () => {
+          renderMain((currentIndex + 1) % mediaList.length);
+        });
+        controls.querySelector('.modal-download').addEventListener('click', () => {
+          mediaList.forEach(m => {
+            const a = document.createElement('a');
+            a.href = m.url;
+            a.download = m.filename || fileNameFromUrl(m.url);
+            a.target = '_blank';
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+          });
+        });
+      } else {
+        controls.classList.add('hidden');
+        // single download button
+        const dlWrap = document.createElement('div');
+        dlWrap.style.display = 'flex';
+        dlWrap.style.justifyContent = 'flex-end';
+        dlWrap.style.marginTop = '8px';
+        const btn = document.createElement('button');
+        btn.className = 'holo-button';
+        btn.textContent = 'Скачать';
+        btn.addEventListener('click', () => {
+          const m = mediaList[0];
+          const a = document.createElement('a');
+          a.href = m.url;
+          a.download = m.filename || fileNameFromUrl(m.url);
+          a.target = '_blank';
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+        });
+        dlWrap.appendChild(btn);
+        $('modalMediaArea').appendChild(dlWrap);
+      }
+
+      // initial render
+      renderMain(0);
     }
 
-    thumbsColumn.querySelectorAll('.thumb').forEach((t, i) => {
-      t.classList.toggle('active', i === idx);
-    });
-    currentIndex = idx;
+    // show backdrop
+    backdrop.style.display = 'flex';
+    // small delay then add class (CSS animations)
+    setTimeout(() => backdrop.classList.add('show'), 10);
+
+    // close on backdrop click
+    backdrop.addEventListener('click', function onBk(e) {
+      if (e.target === backdrop) {
+        backdrop.classList.remove('show');
+        setTimeout(() => { backdrop.style.display = 'none'; modal.innerHTML = ''; backdrop.removeEventListener('click', onBk); }, 260);
+      }
+    }, { once: true });
+
+    // Esc key handler
+    const escHandler = (e) => {
+      if (e.key === 'Escape') {
+        backdrop.classList.remove('show');
+        setTimeout(() => { backdrop.style.display = 'none'; modal.innerHTML = ''; document.removeEventListener('keydown', escHandler); }, 260);
+      }
+    };
+    document.addEventListener('keydown', escHandler);
   }
 
-  // thumbs generation: показываем thumb или имя файла
-  thumbsColumn.innerHTML = '';
-  mediaList.forEach((m, i) => {
-    const t = document.createElement('div');
-    t.className = 'thumb';
-    t.dataset.index = i;
-    t.style.display = 'flex';
-    t.style.alignItems = 'center';
-    t.style.justifyContent = 'center';
-    t.style.padding = '4px';
+  // Lightbox
+  function openImageLightbox(src) {
+    const lb = $('imageLightbox');
+    const img = $('lightboxImg');
+    if (!lb || !img) return;
+    img.src = src;
+    lb.style.display = 'flex';
+    setTimeout(()=> lb.classList.add('show'), 10);
+    // close click
+    lb.addEventListener('click', function onL(e) {
+      if (e.target === lb || e.target === img) {
+        lb.classList.remove('show');
+        setTimeout(()=> { lb.style.display='none'; img.src=''; lb.removeEventListener('click', onL); }, 160);
+      }
+    }, { once: true });
+  }
 
-    const url = (m.url || '').trim();
-    const decidedThumbIsImage = (m.type === 'image' && isImageByUrl(url)) || isImageByUrl(url);
-    const decidedThumbIsVideo = (m.type === 'video' && isVideoByUrl(url)) || isVideoByUrl(url);
+  // Update badges colors (global)
+  function updateBadgeColors() {
+    document.querySelectorAll('.fiori-badge .fiori-badge-code').forEach(el => {
+      // already set via inline style when rendering card; nothing to do
+    });
+  }
 
-    if (decidedThumbIsImage) {
-      const img = document.createElement('img');
-      img.src = url;
-      img.alt = m.filename || fileNameFromUrl(url);
-      img.style.width = '100%';
-      img.style.height = '100%';
-      img.style.objectFit = 'cover';
-      img.addEventListener('error', () => {
-        t.innerHTML = `<div style="padding:6px 8px;font-size:12px;color:#374151;text-align:center;">${escapeHtml(m.filename || fileNameFromUrl(url))}</div>`;
-      });
-      t.appendChild(img);
-    } else if (decidedThumbIsVideo) {
-      const vid = document.createElement('video');
-      vid.src = url;
-      vid.muted = true;
-      vid.loop = true;
-      vid.play().catch(()=>{});
-      vid.style.width = '100%';
-      vid.style.height = '100%';
-      vid.style.objectFit = 'cover';
-      t.appendChild(vid);
-    } else {
-      const fname = document.createElement('div');
-      fname.style.padding = '6px 8px';
-      fname.style.fontSize = '12px';
-      fname.style.color = '#374151';
-      fname.style.textAlign = 'center';
-      fname.textContent = m.filename || fileNameFromUrl(url) || 'Файл';
-      t.appendChild(fname);
+  // Initialization + listeners
+  function initListeners() {
+    $('reloadBtn')?.addEventListener('click', async () => {
+      $('searchInput') && ( $('searchInput').value = '' );
+      $('moduleFilter') && ( $('moduleFilter').value = '' );
+      await loadModules();
+      await loadInstructions();
+      // scroll to top
+      const main = document.querySelector('main');
+      if (main) window.scrollTo({ top: main.getBoundingClientRect().top + window.scrollY - 8, behavior: 'smooth' });
+    });
+
+    $('searchInput')?.addEventListener('keyup', (e) => {
+      if (e.key === 'Enter') applyFilters();
+    });
+
+    $('moduleFilter')?.addEventListener('change', () => {
+      applyFilters();
+      updateActiveBadges();
+    });
+
+    // card open by click delegated
+    document.getElementById('instructionsSection')?.addEventListener('click', (e) => {
+      const card = e.target.closest('.instruction-card');
+      if (!card) return;
+      const id = card.dataset.id;
+      const inst = instructionsCache.find(i => i.id === id);
+      if (inst) openInstructionModal(inst);
+    });
+  }
+
+  // On load: fetch, render, handle inst param
+  (async function init() {
+    await loadModules();
+    await loadInstructions();
+
+    // if URL has ?inst=ID open that one
+    const params = new URLSearchParams(window.location.search);
+    const instId = params.get('inst');
+    if (instId) {
+      const inst = instructionsCache.find(i => i.id === instId);
+      if (inst) setTimeout(()=> openInstructionModal(inst), 300);
     }
+  })();
 
-    t.addEventListener('click', () => renderMain(i));
-    thumbsColumn.appendChild(t);
-  });
+  // Attach public API for ui-enhancements (optional)
+  window.__uiEnhanceReinit = () => {
+    // used by ui-enhancements to re-init animations
+    // e.g. parallax scripts can call this after re-render
+    // currently no-op, but available
+  };
 
-  // controls: arrows only if >1 media
-  if (mediaList.length > 1) {
-    controlsRow.classList.remove('hidden');
-    controlsRow.innerHTML = `
-      <div style="display:flex;gap:8px;">
-        <button type="button" class="secondary modal-prev">◀</button>
-        <button type="button" class="secondary modal-next">▶</button>
-      </div>
-      <div style="display:flex;gap:8px;">
-        <button type="button" class="secondary modal-download">Скачать</button>
-      </div>
-    `;
+  initListeners();
 
-    const prevBtn = controlsRow.querySelector('.modal-prev');
-    const nextBtn = controlsRow.querySelector('.modal-next');
-    const dlBtn = controlsRow.querySelector('.modal-download');
-
-    prevBtn.addEventListener('click', () => {
-      const next = (currentIndex - 1 + mediaList.length) % mediaList.length;
-      renderMain(next);
-    });
-    nextBtn.addEventListener('click', () => {
-      const next = (currentIndex + 1) % mediaList.length;
-      renderMain(next);
-    });
-    dlBtn.addEventListener('click', () => {
-      mediaList.forEach(m => {
-        const a = document.createElement('a');
-        a.href = m.url;
-        a.download = m.filename || fileNameFromUrl(m.url);
-        a.target = '_blank';
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-      });
-    });
-  } else {
-    controlsRow.classList.add('hidden');
-    // single media download button under thumbs/main
-    const dl = document.createElement('div');
-    dl.style.display = 'flex';
-    dl.style.justifyContent = 'flex-end';
-    dl.style.marginTop = '8px';
-    const btn = document.createElement('button');
-    btn.className = 'secondary modal-download';
-    btn.textContent = 'Скачать';
-    btn.addEventListener('click', () => {
-      const m = mediaList[0];
-      const a = document.createElement('a');
-      a.href = m.url;
-      a.download = m.filename || fileNameFromUrl(m.url);
-      a.target = '_blank';
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-    });
-    dl.appendChild(btn);
-    mediaContainer.appendChild(dl);
-  }
-
-  renderMain(0);
-
-  backdrop.style.display = 'flex';
-  closeBtn.addEventListener('click', closeInstructionModal);
-
-  const left = modalWindow.querySelector('.modal-left');
-  if (left) left.scrollTop = 0;
-}
-
-/* ================= CLOSE MODAL ================= */
-function closeInstructionModal() {
-  const backdrop = document.getElementById('instructionModalBackdrop');
-  if (!backdrop) return;
-  backdrop.style.display = 'none';
-}
-
-/* ================= LIGHTBOX ================= */
-function openImageLightbox(src) {
-  const lb = document.getElementById('imageLightbox');
-  const img = document.getElementById('lightboxImg');
-  if (!lb || !img) return;
-  img.src = src;
-  lb.style.display = 'flex';
-}
-function closeImageLightbox() {
-  const lb = document.getElementById('imageLightbox');
-  const img = document.getElementById('lightboxImg');
-  if (!lb || !img) return;
-  img.src = '';
-  lb.style.display = 'none';
-}
-document.getElementById('imageLightbox')?.addEventListener('click', (e) => {
-  if (e.target.id === 'imageLightbox') closeImageLightbox();
-});
-document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape') {
-    closeInstructionModal();
-    closeImageLightbox();
-  }
-});
-
-/* ================= LISTENERS ================= */
-document.getElementById('reloadBtn')?.addEventListener('click', async () => {
-  const searchInput = document.getElementById('searchInput');
-  const moduleFilter = document.getElementById('moduleFilter');
-  if (searchInput) searchInput.value = '';
-  if (moduleFilter) moduleFilter.value = '';
-
-  await loadModulesPublic();
-  await loadInstructionsPublic();
-
-  const main = document.querySelector('main');
-  if (main) {
-    const top = main.getBoundingClientRect().top + window.scrollY - 8;
-    window.scrollTo({ top, behavior: 'smooth' });
-  }
-});
-
-document.getElementById('searchInput')?.addEventListener('keyup', (e) => {
-  if (e.key === 'Enter') loadInstructionsPublic();
-});
-
-document.getElementById('moduleFilter')?.addEventListener('change', () => {
-  loadInstructionsPublic();
-  updateActiveBadges();
-});
-
-document.getElementById('instructionsSection')?.addEventListener('click', (e) => {
-  const badge = e.target.closest('.fiori-badge.clickable');
-  if (badge) {
-    const moduleId = badge.dataset.moduleId;
-    if (!moduleId) return;
-    const moduleFilter = document.getElementById('moduleFilter');
-    moduleFilter.value = moduleId;
-    loadInstructionsPublic();
-    updateActiveBadges();
-    const main = document.querySelector('main');
-    if (main) {
-      const top = main.getBoundingClientRect().top + window.scrollY - 8;
-      window.scrollTo({ top, behavior: 'smooth' });
-    }
-    return;
-  }
-
-  const btn = e.target.closest('.open-instruction');
-  if (btn) {
-    const id = btn.dataset.id;
-    const inst = instructionsCache.find(i => i.id === id);
-    if (!inst) { alert('Инструкция не найдена'); return; }
-    openInstructionModal(inst);
-    return;
-  }
-
-  const card = e.target.closest('.instruction-card');
-  if (!card) return;
-  const id = card.dataset.id;
-  const inst = instructionsCache.find(i => i.id === id);
-  if (!inst) return;
-  openInstructionModal(inst);
-});
-
-document.getElementById('instructionModalBackdrop')?.addEventListener('click', (e) => {
-  if (e.target.id === 'instructionModalBackdrop') closeInstructionModal();
-});
-
-/* ================= INIT ================= */
-(async function init() {
-  await loadModulesPublic();
-  await loadInstructionsPublic();
-
-  const params = new URLSearchParams(window.location.search);
-  const instId = params.get('inst');
-  if (instId) {
-    const inst = instructionsCache.find(i => i.id === instId);
-    if (inst) setTimeout(() => openInstructionModal(inst), 300);
-  }
-
-  updateActiveBadges();
 })();
