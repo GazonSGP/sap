@@ -1,81 +1,38 @@
-/* public/css/styles.css - исправленный фрагмент для компактных карточек и модалки */
-
-/* --- (тут должны быть базовые переменные и общий стиль, оставляем прежними) --- */
-
-/* Карточки */
-.instruction-card {
-  padding: 18px;
-  border-radius: 12px;
-  background: var(--aurora-glass, rgba(255,255,255,0.03));
-  border: 1px solid rgba(255,255,255,0.04);
-  box-shadow: var(--shadow-soft, 0 8px 24px rgba(0,0,0,0.35));
-  transition: transform .22s ease, box-shadow .22s ease;
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  min-height: 220px;
-  max-height: 420px;
-  overflow: visible;
+:root{
+  --bg:#0e1117;--panel:rgba(255,255,255,0.03);--border:rgba(255,255,255,0.06);
+  --text:#e8eef5;--muted:#94a3b8;--module-glow:#0a6ed1;
 }
-.instruction-card:hover { transform: translateY(-6px); }
-
-/* Заголовок */
-.instruction-card h3 { margin: 6px 0 8px; font-size: 18px; }
-
-/* Контент: делаем компактным (ограничиваем высоту) */
-.instruction-card .card-content {
-  position: relative;
-  max-height: 120px;            /* compact preview height */
-  overflow: hidden;
-  padding-right: 8px;
-  transition: max-height .28s ease;
-}
-
-.instruction-card .card-content.expanded {
-  max-height: 1000px;           /* when expanded */
-}
-
-/* Градиент fade внизу карточки, чтобы показать "обрезку" */
-.instruction-card .card-content::after {
-  content: "";
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  height: 46px;
-  background: linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(14,20,30,0.5) 100%);
-  pointer-events: none;
-  transition: opacity .2s;
-}
-
-/* Скрываем fade, когда expanded */
-.instruction-card .card-content.expanded::after { opacity: 0; }
-
-/* "Увидеть больше" и "Открыть" */
-.card-footer { margin-top: 12px; display:flex; gap:8px; align-items:center; }
-.holo-button { padding:8px 12px; border-radius:8px; border:1px solid rgba(255,255,255,0.06); background:transparent; color:var(--text-main); cursor:pointer; }
-
-/* Мини-кнопка "Развернуть" */
-.card-toggle {
-  margin-left:auto;
-  background: rgba(255,255,255,0.02);
-  padding:6px 10px;
-  font-size:13px;
-  border-radius:8px;
-  border:1px solid rgba(255,255,255,0.04);
-}
-
-/* Если карточка маленькая - делаем её ровной */
-.instruction-card.compact { min-height: 180px; }
-
-/* Модалка */
-.modal-backdrop { display:none; position:fixed; inset:0; align-items:center; justify-content:center; z-index:1200; background: rgba(2,6,23,0.55); }
-.modal-backdrop.show { display:flex; }
-.modal-window { width:min(1100px,96vw); max-height:90vh; background:var(--aurora-panel, #fff); border-radius:14px; overflow:hidden; display:grid; grid-template-columns: 1fr 360px; gap:14px; padding:18px; }
-
-/* Лёгкие стили для файла-карточки (в модалке) */
-.file-card { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:12px; border-radius:10px; background: linear-gradient(180deg,#fff,#f7f9fb); }
-.file-card .icon { width:56px; height:56px; border-radius:8px; display:flex; align-items:center; justify-content:center; font-weight:700; color:#0b1220; background:#f1f5f9; }
-
-/* Скрытые элементы с классом .hidden */
-.hidden { display:none !important; }
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;font-family:Inter,system-ui,Arial;background:var(--bg);color:var(--text)}
+.aurora-header{display:flex;justify-content:space-between;align-items:center;padding:14px 22px;border-bottom:1px solid rgba(255,255,255,0.02);backdrop-filter:blur(6px)}
+.logo{display:flex;gap:10px;align-items:center}
+.logo-dot{width:12px;height:12px;border-radius:50%;background:linear-gradient(135deg,#3b82f6,#0ea5e9);box-shadow:0 0 8px #0ea5e9}
+.logo-text{font-weight:600}
+.filters-panel{display:flex;gap:14px;padding:18px 22px;align-items:center}
+.search-field{flex:1;padding:12px;border-radius:10px;background:var(--panel);border:1px solid var(--border);color:var(--text)}
+.module-select{width:240px;padding:12px;border-radius:10px;background:var(--panel);border:1px solid var(--border);color:var(--text)}
+.instructions-grid{padding:20px 22px;display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:18px}
+.empty-state{display:none;padding:28px;color:var(--muted);text-align:center}
+.instruction-card{padding:16px;border-radius:12px;background:var(--panel);border:1px solid var(--border);box-shadow:0 8px 24px rgba(0,0,0,0.35);transition:transform .2s}
+.instruction-card:hover{transform:translateY(-6px)}
+.instruction-card h3{font-size:18px;margin:8px 0}
+.card-content{max-height:120px;overflow:hidden;position:relative;padding-right:6px}
+.card-content.expanded{max-height:1000px}
+.card-content::after{content:"";position:absolute;left:0;right:0;bottom:0;height:46px;background:linear-gradient(180deg,rgba(14,17,23,0),rgba(14,17,23,0.55));pointer-events:none}
+.card-content.expanded::after{opacity:0}
+.fiori-badge{display:inline-flex;align-items:center;cursor:pointer}
+.fiori-badge-code{padding:4px 10px;border-radius:8px;background:var(--module-glow);color:#fff;font-weight:700;font-size:12px}
+.card-footer{display:flex;gap:8px;align-items:center;margin-top:12px}
+.holo-button{padding:8px 12px;border-radius:8px;border:1px solid rgba(255,255,255,0.04);background:transparent;color:var(--text);cursor:pointer}
+.card-toggle{margin-left:auto;background:rgba(255,255,255,0.02);padding:6px 10px;border-radius:8px}
+.modal-backdrop{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);align-items:center;justify-content:center;z-index:1200}
+.modal-backdrop.show{display:flex}
+.modal-window{width:min(1100px,96vw);max-height:90vh;background:var(--panel);border-radius:12px;padding:16px;display:grid;grid-template-columns:1fr 360px;gap:12px;overflow:auto}
+.modal-main-media img,.modal-main-media video{max-width:100%;max-height:420px;border-radius:10px}
+.modal-thumbs{display:flex;gap:8px;margin-top:8px;overflow:auto}
+.thumb{width:80px;height:60px;border-radius:8px;overflow:hidden;background:rgba(255,255,255,0.03);display:flex;align-items:center;justify-content:center}
+.thumb.active{outline:2px solid var(--module-glow)}
+.lightbox{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);align-items:center;justify-content:center;z-index:1300}
+.lightbox.show{display:flex}
+.lightbox img{max-width:90%;max-height:90%;border-radius:10px}
+.hidden{display:none!important}
