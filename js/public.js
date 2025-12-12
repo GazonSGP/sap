@@ -95,7 +95,7 @@
   // Load instructions
   async function loadInstructions() {
     try {
-      const res = await fetch('/data/instructions.json', { cache: 'no-store' });
+      const res = await fetch('data/instructions.json', { cache: 'no-store' });
       instructionsCache = await res.json();
     } catch (e) {
       console.error('loadInstructions error', e);
@@ -559,4 +559,5 @@
   initListeners();
 
 })();
+
 
