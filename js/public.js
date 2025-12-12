@@ -68,7 +68,7 @@
   // Load modules
   async function loadModules() {
     try {
-      const res = await fetch('/data/modules.json', { cache: 'no-store' });
+      const res = await fetch('data/modules.json', { cache: 'no-store' });
       modulesCache = await res.json();
     } catch (e) {
       console.error('loadModules error', e);
@@ -559,3 +559,4 @@
   initListeners();
 
 })();
+
