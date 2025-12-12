@@ -1,323 +1,81 @@
-/* ============================================================
-   SAP AURORA 2040 — HOLO UI
-   Глобальный стиль публичной части
-   Автор: ChatGPT + Ты
-   ============================================================ */
+/* public/css/styles.css - исправленный фрагмент для компактных карточек и модалки */
 
-/* ----------------------- */
-/* 0. Глобальные переменные */
-/* ----------------------- */
-:root {
-  --aurora-bg: #0e1117;
-  --aurora-panel: rgba(255,255,255,0.04);
-  --aurora-glass: rgba(255,255,255,0.08);
-  --aurora-border: rgba(255,255,255,0.16);
-  --aurora-hover: rgba(255,255,255,0.14);
+/* --- (тут должны быть базовые переменные и общий стиль, оставляем прежними) --- */
 
-  /* Текст */
-  --text-main: #e8eef5;
-  --text-muted: #94a3b8;
-
-  /* Тени и свечения */
-  --shadow-holo: 0 4px 20px rgba(0,0,0,0.4);
-  --shadow-soft: 0 8px 24px rgba(0,0,0,0.3);
-
-  /* Кнопки */
-  --btn-bg: rgba(255,255,255,0.05);
-  --btn-bg-hover: rgba(255,255,255,0.12);
-  --btn-border: rgba(255,255,255,0.18);
-
-  /* Светящиеся акценты (update dynamically в JS) */
-  --module-glow: #0a6ed1;
-}
-
-/* ----------------------- */
-/* 1. GLOBAL RESET         */
-/* ----------------------- */
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
-
-html, body {
-  width: 100%;
-  height: 100%;
-  font-family: "Inter", sans-serif;
-  background: var(--aurora-bg);
-  color: var(--text-main);
-}
-
-body {
+/* Карточки */
+.instruction-card {
+  padding: 18px;
+  border-radius: 12px;
+  background: var(--aurora-glass, rgba(255,255,255,0.03));
+  border: 1px solid rgba(255,255,255,0.04);
+  box-shadow: var(--shadow-soft, 0 8px 24px rgba(0,0,0,0.35));
+  transition: transform .22s ease, box-shadow .22s ease;
+  position: relative;
   display: flex;
   flex-direction: column;
-  min-height: 100vh;
-}
-
-/* ----------------------- */
-/* 2. HEADER (AURORA)      */
-/* ----------------------- */
-.aurora-header {
-  width: 100%;
-  padding: 16px 28px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  background: linear-gradient(
-    to bottom,
-    rgba(255,255,255,0.08),
-    rgba(255,255,255,0.02)
-  );
-  border-bottom: 1px solid var(--aurora-border);
-  backdrop-filter: blur(18px);
-  -webkit-backdrop-filter: blur(18px);
-  box-shadow: var(--shadow-holo);
-}
-
-.logo {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.logo-dot {
-  width: 14px;
-  height: 14px;
-  background: linear-gradient(135deg, #3b82f6, #0ea5e9);
-  border-radius: 50%;
-  box-shadow: 0 0 10px #0ea5e9;
-}
-
-.logo-text {
-  font-size: 20px;
-  font-weight: 600;
-  letter-spacing: 0.4px;
-}
-
-/* ----------------------- */
-/* 3. FILTER PANEL         */
-/* ----------------------- */
-.filters-panel {
-  width: 100%;
-  padding: 20px 28px;
-  display: flex;
-  gap: 16px;
-  align-items: center;
-}
-
-.search-field {
-  flex: 1;
-  padding: 12px 16px;
-  border-radius: 10px;
-  border: 1px solid var(--aurora-border);
-  background: var(--aurora-panel);
-  color: var(--text-main);
-  font-size: 15px;
-}
-
-.search-field:focus {
-  outline: none;
-  border-color: #3b82f6;
-  box-shadow: 0 0 4px #3b82f6;
-}
-
-.module-select {
-  width: 260px;
-  padding: 12px 16px;
-  border-radius: 10px;
-  border: 1px solid var(--aurora-border);
-  background: var(--aurora-panel);
-  color: var(--text-main);
-  font-size: 15px;
-}
-
-/* ----------------------- */
-/* 4. INSTRUCTIONS GRID    */
-/* ----------------------- */
-.instructions-grid {
-  padding: 20px 28px;
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-  gap: 22px;
-}
-
-.empty-state {
-  padding: 50px;
-  text-align: center;
-  color: var(--text-muted);
-  font-size: 18px;
-  display: none;
-}
-
-/* ----------------------- */
-/* 5. HOLO CARDS           */
-/* ----------------------- */
-.instruction-card {
-  padding: 20px;
-  border-radius: 18px;
-  background: var(--aurora-glass);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid var(--aurora-border);
-  box-shadow: var(--shadow-soft);
-  cursor: pointer;
-  transition: transform 0.25s ease, box-shadow 0.25s ease;
-  position: relative;
-}
-
-.instruction-card:hover {
-  transform: translateY(-4px) scale(1.02);
-  box-shadow: 0 12px 32px rgba(0,0,0,0.45),
-              0 0 16px var(--module-glow);
-}
-
-.instruction-card h3 {
-  font-size: 20px;
-  margin-bottom: 8px;
-}
-
-/* ----------------------- */
-/* 6. FIORI 2040 BADGES    */
-/* ----------------------- */
-.fiori-badge {
-  display: inline-flex;
-  align-items: center;
-  cursor: pointer;
-}
-
-.fiori-badge-code {
-  padding: 4px 10px;
-  border-radius: 8px;
-  background: var(--module-glow);
-  font-weight: 600;
-  color: #fff;
-  font-size: 12px;
-  letter-spacing: 0.4px;
-  box-shadow: 0 0 10px var(--module-glow);
-  transition: transform 0.2s ease;
-}
-
-.fiori-badge:hover .fiori-badge-code {
-  transform: scale(1.08);
-}
-
-/* ----------------------- */
-/* 7. BUTTONS              */
-/* ----------------------- */
-.holo-button {
-  padding: 10px 18px;
-  background: var(--btn-bg);
-  border: 1px solid var(--btn-border);
-  border-radius: 10px;
-  color: var(--text-main);
-  cursor: pointer;
-  transition: 0.2s;
-}
-
-.holo-button:hover {
-  background: var(--btn-bg-hover);
-  box-shadow: 0 0 10px rgba(255,255,255,0.12);
-}
-
-.holo-button.small {
-  padding: 6px 14px;
-}
-
-/* ----------------------- */
-/* 8. MODAL                */
-/* ----------------------- */
-.modal-backdrop {
-  display: none;
-  position: fixed;
-  z-index: 1000;
-  inset: 0;
-  background: rgba(0,0,0,0.65);
-  backdrop-filter: blur(4px);
-  align-items: center;
-  justify-content: center;
-}
-
-.modal-window {
-  width: 90%;
-  max-width: 1180px;
-  min-height: 500px;
-  max-height: 90vh;
-  background: var(--aurora-panel);
-  border: 1px solid var(--aurora-border);
-  border-radius: 20px;
-  padding: 20px;
-  display: grid;
-  grid-template-columns: 1fr 380px;
-  gap: 18px;
-  backdrop-filter: blur(28px);
-  box-shadow: var(--shadow-soft);
-  animation: modalIn 0.28s ease;
-}
-
-@keyframes modalIn {
-  from { transform: translateY(40px) scale(0.96); opacity: 0; }
-  to   { transform: translateY(0) scale(1); opacity: 1; }
-}
-
-/* ----------------------- */
-/* 9. MEDIA COLUMN         */
-/* ----------------------- */
-.modal-main-media img,
-.modal-main-media video {
-  max-width: 100%;
+  min-height: 220px;
   max-height: 420px;
-  border-radius: 12px;
-  box-shadow: var(--shadow-soft);
-  cursor: zoom-in;
+  overflow: visible;
 }
+.instruction-card:hover { transform: translateY(-6px); }
 
-.modal-thumbs {
-  margin-top: 10px;
-  display: flex;
-  gap: 10px;
-  overflow-x: auto;
-}
+/* Заголовок */
+.instruction-card h3 { margin: 6px 0 8px; font-size: 18px; }
 
-.modal-thumbs .thumb {
-  width: 80px;
-  height: 60px;
-  border-radius: 8px;
+/* Контент: делаем компактным (ограничиваем высоту) */
+.instruction-card .card-content {
+  position: relative;
+  max-height: 120px;            /* compact preview height */
   overflow: hidden;
-  cursor: pointer;
-  background: var(--aurora-glass);
-  border: 1px solid var(--aurora-border);
+  padding-right: 8px;
+  transition: max-height .28s ease;
 }
 
-.thumb.active {
-  outline: 2px solid var(--module-glow);
+.instruction-card .card-content.expanded {
+  max-height: 1000px;           /* when expanded */
 }
 
-.media-controls {
-  margin-top: 16px;
-  display: flex;
-  justify-content: space-between;
+/* Градиент fade внизу карточки, чтобы показать "обрезку" */
+.instruction-card .card-content::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 46px;
+  background: linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(14,20,30,0.5) 100%);
+  pointer-events: none;
+  transition: opacity .2s;
 }
 
-/* ----------------------- */
-/* 10. LIGHTBOX            */
-/* ----------------------- */
-.lightbox {
-  display: none;
-  position: fixed;
-  z-index: 2000;
-  inset: 0;
-  background: rgba(0,0,0,0.85);
-  backdrop-filter: blur(6px);
-  align-items: center;
-  justify-content: center;
+/* Скрываем fade, когда expanded */
+.instruction-card .card-content.expanded::after { opacity: 0; }
+
+/* "Увидеть больше" и "Открыть" */
+.card-footer { margin-top: 12px; display:flex; gap:8px; align-items:center; }
+.holo-button { padding:8px 12px; border-radius:8px; border:1px solid rgba(255,255,255,0.06); background:transparent; color:var(--text-main); cursor:pointer; }
+
+/* Мини-кнопка "Развернуть" */
+.card-toggle {
+  margin-left:auto;
+  background: rgba(255,255,255,0.02);
+  padding:6px 10px;
+  font-size:13px;
+  border-radius:8px;
+  border:1px solid rgba(255,255,255,0.04);
 }
 
-.lightbox img {
-  max-width: 90%;
-  max-height: 90%;
-  border-radius: 14px;
-}
+/* Если карточка маленькая - делаем её ровной */
+.instruction-card.compact { min-height: 180px; }
 
-/* ----------------------------------------------------------- */
-/* END OF FILE                                                 */
-/* ----------------------------------------------------------- */
+/* Модалка */
+.modal-backdrop { display:none; position:fixed; inset:0; align-items:center; justify-content:center; z-index:1200; background: rgba(2,6,23,0.55); }
+.modal-backdrop.show { display:flex; }
+.modal-window { width:min(1100px,96vw); max-height:90vh; background:var(--aurora-panel, #fff); border-radius:14px; overflow:hidden; display:grid; grid-template-columns: 1fr 360px; gap:14px; padding:18px; }
+
+/* Лёгкие стили для файла-карточки (в модалке) */
+.file-card { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:12px; border-radius:10px; background: linear-gradient(180deg,#fff,#f7f9fb); }
+.file-card .icon { width:56px; height:56px; border-radius:8px; display:flex; align-items:center; justify-content:center; font-weight:700; color:#0b1220; background:#f1f5f9; }
+
+/* Скрытые элементы с классом .hidden */
+.hidden { display:none !important; }
