@@ -1,75 +1,31 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ru">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>SAP Instructions — Aurora 2040</title>
-
-  <!-- Основные стили -->
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>SAP Instructions</title>
   <link rel="stylesheet" href="css/styles.css" />
-
-  <!-- Эффекты и анимации (подгрузится позже) -->
-  <script defer src="js/ui-enhancements.js"></script>
-
-  <!-- Логика отображения инструкций -->
-  <script defer src="js/public.js"></script>
 </head>
-
 <body>
-
-  <!-- -------------------------------------- -->
-  <!-- ⭐️ ГЛОБАЛЬНЫЙ ХЕДЕР (Fiori 2040 Aurora) -->
-  <!-- -------------------------------------- -->
   <header class="aurora-header">
-    <div class="header-left">
-      <div class="logo">
-        <span class="logo-dot"></span>
-        <span class="logo-text">SAP Instructions 2040</span>
-      </div>
-    </div>
-
-    <div class="header-right">
-      <button id="reloadBtn" class="holo-button small">Обновить</button>
-    </div>
+    <div class="logo"><span class="logo-dot"></span><span class="logo-text">SAP Instructions 2040</span></div>
+    <div><button id="reloadBtn" class="holo-button small">Обновить</button></div>
   </header>
 
-  <!-- -------------------------------------- -->
-  <!-- 🔎 ПАНЕЛЬ ПОИСКА И ФИЛЬТРОВ -->
-  <!-- -------------------------------------- -->
   <section class="filters-panel">
-    <input
-      id="searchInput"
-      class="search-field"
-      type="text"
-      placeholder="Поиск по названию, транзакции или примечаниям..."
-    />
-
-    <select id="moduleFilter" class="module-select">
-      <option value="">Все модули</option>
-    </select>
+    <input id="searchInput" class="search-field" placeholder="Поиск по названию, транзакции или примечаниям..." />
+    <select id="moduleFilter" class="module-select"><option value="">Все модули</option></select>
   </section>
 
-  <!-- -------------------------------------- -->
-  <!-- 🧊 СЕТКА ИНСТРУКЦИЙ (Holo Cards) -->
-  <!-- -------------------------------------- -->
   <main>
     <div id="emptyState" class="empty-state">Инструкции не найдены</div>
     <div id="instructionsSection" class="instructions-grid"></div>
   </main>
 
-  <!-- -------------------------------------- -->
-  <!-- 🪟 МОДАЛЬНОЕ ОКНО ДЛЯ ИНСТРУКЦИЙ -->
-  <!-- -------------------------------------- -->
-  <div id="instructionModalBackdrop" class="modal-backdrop">
-    <div class="modal-window holo-modal"></div>
-  </div>
+  <div id="instructionModalBackdrop" class="modal-backdrop"><div class="modal-window"></div></div>
+  <div id="imageLightbox" class="lightbox"><img id="lightboxImg" /></div>
 
-  <!-- -------------------------------------- -->
-  <!-- 🔍 LIGHTBOX ДЛЯ ИЗОБРАЖЕНИЙ -->
-  <!-- -------------------------------------- -->
-  <div id="imageLightbox" class="lightbox">
-    <img id="lightboxImg" />
-  </div>
-
+  <script src="js/public.js" defer></script>
+  <script src="js/ui-enhancements.js" defer></script>
 </body>
 </html>
