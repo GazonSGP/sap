@@ -1,85 +1,59 @@
-/* public/js/public.js
-   Aurora 2040 — public logic
-   - Loads data from /data/modules.json and /data/instructions.json
-   - Renders Holo cards (.instruction-card)
-   - Badge filtering, search, reload
-   - Two-column modal (text left, media right)
-   - Lightbox for images
-   - Media types: image | video | file (downloadable)
+/* public/js/public.js - облегчённая и исправленная версия
+   - карточки компактные по умолчанию (preview)
+   - кнопка "Развернуть" внутри карточки раскрывает текст (локально)
+   - клик по кнопке "Увидеть больше" или по карточке откроет модалку
+   - делегированные события, нет повторных и тяжёлых операций
 */
 
 (() => {
-  // Caches
   let modulesCache = [];
   let instructionsCache = [];
 
-  // Helpers
-  function escapeHtml(str) {
-    if (str === null || str === undefined) return '';
-    return String(str)
-      .replaceAll('&', '&amp;')
-      .replaceAll('<', '&lt;')
-      .replaceAll('>', '&gt;')
-      .replaceAll('"', '&quot;')
-      .replaceAll("'", '&#039;');
-  }
+  const $ = id => document.getElementById(id);
 
-  function fileNameFromUrl(url = '') {
-    try {
-      return decodeURIComponent(url.split('?')[0].split('/').pop());
-    } catch (e) { return url.split('/').pop(); }
-  }
-
+  function escapeHtml(s){ if (s==null) return ''; return String(s).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;'); }
+  function fileNameFromUrl(url=''){ try{return decodeURIComponent(url.split('?')[0].split('/').pop());}catch(e){return url.split('/').pop();} }
+  function extFromUrl(url=''){ const m = (url||'').split('?')[0].toLowerCase().match(/\.([a-z0-9]+)$/); return m?m[1]:''; }
   const IMAGE_EXTS = ['jpg','jpeg','png','gif','webp','svg','bmp','tiff','ico'];
   const VIDEO_EXTS = ['mp4','webm','ogg','mov','mkv'];
+  function isImage(url){ return IMAGE_EXTS.includes(extFromUrl(url)); }
+  function isVideo(url){ return VIDEO_EXTS.includes(extFromUrl(url)); }
 
-  function extFromUrl(url = '') {
-    const u = (url || '').split('?')[0];
-    const m = u.toLowerCase().match(/\.([a-z0-9]+)$/);
-    return m ? m[1] : '';
-  }
-  function isImageUrl(url) { return IMAGE_EXTS.includes(extFromUrl(url)); }
-  function isVideoUrl(url) { return VIDEO_EXTS.includes(extFromUrl(url)); }
-
-  function cropText(text = '', max = 180) {
-    if (!text) return '';
-    return text.length <= max ? text : text.slice(0, max) + '...';
-  }
-
-  // Basic deterministic color-picker based on module code/name
-  function getColorForModule(codeOrName = '') {
-    const palette = [
-      '#0a6ed1', '#0b9f6b', '#f97316', '#7c3aed', '#ef4444',
-      '#06b6d4', '#f59e0b', '#10b981', '#6366f1', '#db2777',
-      '#ff6b6b', '#00bcd4', '#ff8a65'
-    ];
-    if (!codeOrName) return palette[0];
-    let h = 0;
-    for (let i = 0; i < codeOrName.length; i++) {
-      h = ((h << 5) - h) + codeOrName.charCodeAt(i);
-      h |= 0;
-    }
+  function getColorForModule(codeOrName=''){
+    const palette = ['#0a6ed1','#0b9f6b','#f97316','#7c3aed','#ef4444','#06b6d4','#f59e0b','#10b981','#6366f1','#db2777'];
+    if(!codeOrName) return palette[0];
+    let h=0; for(let i=0;i<codeOrName.length;i++){ h = ((h<<5) - h) + codeOrName.charCodeAt(i); h |= 0; }
     return palette[Math.abs(h) % palette.length];
   }
 
-  // DOM shortcuts
-  const $ = id => document.getElementById(id);
-
-  // Load modules
-  async function loadModules() {
-    try {
-      const res = await fetch('data/modules.json', { cache: 'no-store' });
+  async function loadModules(){
+    try{
+      const res = await fetch('/json/modules.json', {cache:'no-store'});
+      if(!res.ok) throw new Error('modules fetch ' + res.status);
       modulesCache = await res.json();
-    } catch (e) {
-      console.error('loadModules error', e);
-      modulesCache = [];
+    }catch(e){
+      console.warn('loadModules error, try root path', e);
+      // fallback to root
+      try { const fallback = await fetch('/modules.json',{cache:'no-store'}); modulesCache = fallback.ok ? await fallback.json() : []; } catch(_) { modulesCache = []; }
     }
     populateModuleFilter();
   }
 
-  function populateModuleFilter() {
+  async function loadInstructions(){
+    try{
+      const res = await fetch('/json/instructions.json', {cache:'no-store'});
+      if(!res.ok) throw new Error('instructions fetch ' + res.status);
+      instructionsCache = await res.json();
+    }catch(e){
+      console.warn('loadInstructions error, try root path', e);
+      try { const fallback = await fetch('/instructions.json',{cache:'no-store'}); instructionsCache = fallback.ok ? await fallback.json() : []; } catch(_) { instructionsCache = []; }
+    }
+    applyFilters(); // will call render
+  }
+
+  function populateModuleFilter(){
     const sel = $('moduleFilter');
-    if (!sel) return;
+    if(!sel) return;
     const prev = sel.value || '';
     sel.innerHTML = '<option value="">Все модули</option>';
     modulesCache.forEach(m => {
@@ -88,476 +62,265 @@
       opt.textContent = (m.code ? (m.code + ' — ') : '') + (m.name || '');
       sel.appendChild(opt);
     });
-    if (prev) sel.value = prev;
-    updateBadgeColors();
+    if(prev) sel.value = prev;
   }
 
-  // Load instructions
-  async function loadInstructions() {
-    try {
-      const res = await fetch('data/instructions.json', { cache: 'no-store' });
-      instructionsCache = await res.json();
-    } catch (e) {
-      console.error('loadInstructions error', e);
-      instructionsCache = [];
-    }
-    renderInstructionGrid(instructionsCache);
-  }
-
-  // Render grid
-  function renderInstructionGrid(listData) {
+  function renderInstructionGrid(list){
     const grid = $('instructionsSection');
     const empty = $('emptyState');
-    if (!grid) return;
+    if(!grid) return;
     grid.innerHTML = '';
-
-    const items = Array.isArray(listData) ? listData : [];
-    if (!items.length) {
-      if (empty) empty.style.display = 'block';
+    if(!Array.isArray(list) || list.length===0){
+      if(empty) empty.style.display = 'block';
       return;
     }
-    if (empty) empty.style.display = 'none';
+    if(empty) empty.style.display = 'none';
 
-    items.forEach(inst => {
+    // Build lightweight cards
+    list.forEach(inst => {
       const card = document.createElement('article');
-      card.className = 'instruction-card';
-      card.tabIndex = 0;
+      card.className = 'instruction-card compact';
       card.dataset.id = inst.id || '';
 
-      // module info
-      const moduleObj = modulesCache.find(m => m.id === inst.moduleId) || null;
-      const moduleCode = moduleObj && moduleObj.code ? moduleObj.code : '';
-      const moduleName = moduleObj && moduleObj.name ? moduleObj.name : (inst.moduleId || '');
-      const color = getColorForModule(moduleCode || moduleName);
-
-      // set per-card module glow var (used in CSS)
+      // meta + badge
+      const moduleObj = modulesCache.find(m => m.id === inst.moduleId) || {};
+      const color = getColorForModule(moduleObj.code || moduleObj.name || inst.moduleId || '');
       card.style.setProperty('--module-glow', color);
 
-      // badge
-      const badge = document.createElement('div');
+      const metaDiv = document.createElement('div');
+      metaDiv.className = 'meta';
+      metaDiv.style.display = 'flex';
+      metaDiv.style.alignItems = 'center';
+      metaDiv.style.gap = '12px';
+
+      const badge = document.createElement('span');
       badge.className = 'fiori-badge clickable';
       badge.dataset.moduleId = inst.moduleId || '';
-      badge.title = moduleName || '';
       const badgeCode = document.createElement('span');
       badgeCode.className = 'fiori-badge-code';
       badgeCode.style.background = color;
-      badgeCode.textContent = moduleCode || (moduleName ? moduleName[0] : '');
+      badgeCode.textContent = moduleObj.code || (moduleObj.name ? moduleObj.name[0] : '');
       badge.appendChild(badgeCode);
+      metaDiv.appendChild(badge);
 
       // title
-      const title = document.createElement('h3');
-      title.innerHTML = escapeHtml(inst.title || '(без названия)');
+      const h = document.createElement('h3');
+      h.textContent = inst.title || '(без названия)';
 
-      // transaction row
+      // tx
       const tx = document.createElement('p');
       tx.className = 'small';
-      tx.innerHTML = `<strong>Транзакция:</strong> ${escapeHtml(inst.transactionCode || '-')}`;
+      tx.innerHTML = `<strong>Транзакция:</strong> ${escapeHtml(inst.transactionCode||'-')}`;
 
-      // steps preview (first 2-3)
-      const steps = (inst.steps || []).slice(0, 3).map((s, idx) => `Шаг ${idx+1}: ${escapeHtml(s)}`).join('<br>');
-      const more = (inst.steps || []).length > 3 ? '<br>...' : '';
-
+      // content preview
       const content = document.createElement('div');
       content.className = 'card-content';
-      content.innerHTML = `${steps ? `<p>${steps}${more}</p>` : '<p><em>Шаги не указаны</em></p>'}${inst.notes ? `<p class="small"><strong>Примечания:</strong> ${escapeHtml(cropText(inst.notes, 160))}</p>` : ''}`;
+      // build steps preview (2 lines)
+      const stepsArray = Array.isArray(inst.steps) ? inst.steps.slice(0,3) : [];
+      const stepsHtml = stepsArray.map((s,i)=>`Шаг ${i+1}: ${escapeHtml(s)}`).join('<br>');
+      const notesShort = escapeHtml((inst.notes||'').slice(0,180));
+      content.innerHTML = `${stepsHtml ? `<p>${stepsHtml}${(inst.steps && inst.steps.length>3)?'<br>...':''}</p>` : '<p><em>Шаги не указаны</em></p>'}${notesShort?`<p class="small"><strong>Примечания:</strong> ${notesShort}</p>`:''}`;
 
-      // footer with button
+      // footer
       const footer = document.createElement('div');
       footer.className = 'card-footer';
-      footer.style.marginTop = '12px';
-      const btn = document.createElement('button');
-      btn.className = 'holo-button';
-      btn.textContent = 'Увидеть больше';
-      btn.dataset.id = inst.id || '';
-      footer.appendChild(btn);
+      const openBtn = document.createElement('button');
+      openBtn.className = 'holo-button';
+      openBtn.textContent = 'Увидеть больше';
+      openBtn.dataset.id = inst.id || '';
+      const toggleBtn = document.createElement('button');
+      toggleBtn.className = 'card-toggle';
+      toggleBtn.textContent = 'Развернуть';
+      footer.appendChild(openBtn);
+      footer.appendChild(toggleBtn);
 
-      // assemble
-      const metaWrap = document.createElement('div');
-      metaWrap.className = 'meta';
-      metaWrap.style.display = 'flex';
-      metaWrap.style.alignItems = 'center';
-      metaWrap.style.gap = '12px';
-      metaWrap.appendChild(badge);
-      // append
-      card.appendChild(metaWrap);
-      card.appendChild(title);
-      card.appendChild(tx);
-      card.appendChild(content);
-      card.appendChild(footer);
-
-      // events
-      badge.addEventListener('click', (e) => {
+      // events: badge click -> filter, openBtn -> modal, toggle -> expand
+      badge.addEventListener('click', (e)=>{
         e.stopPropagation();
         const mid = badge.dataset.moduleId || '';
-        if (!mid) return;
+        if(!mid) return;
         $('moduleFilter').value = mid;
         applyFilters();
       });
-
-      btn.addEventListener('click', (e) => {
+      openBtn.addEventListener('click', (e)=>{
         e.stopPropagation();
-        const id = btn.dataset.id;
-        const instObj = instructionsCache.find(x => x.id === id);
-        if (instObj) openInstructionModal(instObj);
+        const id = openBtn.dataset.id;
+        const instObj = instructionsCache.find(it => it.id === id);
+        if(instObj) openInstructionModal(instObj);
+      });
+      toggleBtn.addEventListener('click', (e)=>{
+        e.stopPropagation();
+        const expanded = content.classList.toggle('expanded');
+        toggleBtn.textContent = expanded ? 'Свернуть' : 'Развернуть';
       });
 
-      card.addEventListener('click', (e) => {
-        const instObj = instructionsCache.find(x => x.id === card.dataset.id);
-        if (instObj) openInstructionModal(instObj);
+      // clicking card opens modal
+      card.addEventListener('click', (e)=>{
+        // ignore clicks if target was a control (button) - already handled above
+        if(e.target.closest('button')) return;
+        const instObj = instructionsCache.find(it => it.id === card.dataset.id);
+        if(instObj) openInstructionModal(instObj);
       });
 
+      // assemble
+      card.appendChild(metaDiv);
+      card.appendChild(h);
+      card.appendChild(tx);
+      card.appendChild(content);
+      card.appendChild(footer);
       grid.appendChild(card);
     });
 
-    // re-init enhancement hooks (parallax, pulses) — UI enhancement script can also hook into DOM
-    if (window.__uiEnhanceReinit) window.__uiEnhanceReinit();
+    // after render, no heavy reinit here
   }
 
-  // Apply search + module filter
-  function applyFilters() {
+  function applyFilters(){
     const q = ($('searchInput')?.value || '').trim().toLowerCase();
     const moduleId = ($('moduleFilter')?.value || '').trim();
     let filtered = instructionsCache.slice();
-
-    if (moduleId) filtered = filtered.filter(i => i.moduleId === moduleId);
-    if (q) filtered = filtered.filter(i => {
-      const inTitle = (i.title || '').toLowerCase().includes(q);
-      const inTx = (i.transactionCode || '').toLowerCase().includes(q);
-      const inNotes = (i.notes || '').toLowerCase().includes(q);
-      const inSteps = (Array.isArray(i.steps) ? i.steps.join(' ') : '').toLowerCase().includes(q);
+    if(moduleId) filtered = filtered.filter(i => i.moduleId === moduleId);
+    if(q) filtered = filtered.filter(i=>{
+      const inTitle = (i.title||'').toLowerCase().includes(q);
+      const inTx = (i.transactionCode||'').toLowerCase().includes(q);
+      const inNotes = (i.notes||'').toLowerCase().includes(q);
+      const inSteps = Array.isArray(i.steps) ? i.steps.join(' ').toLowerCase().includes(q) : false;
       return inTitle || inTx || inNotes || inSteps;
     });
-
     renderInstructionGrid(filtered);
-    updateActiveBadges();
   }
 
-  function updateActiveBadges() {
-    const activeModule = ($('moduleFilter')?.value || '');
-    document.querySelectorAll('.fiori-badge').forEach(b => {
-      const mid = b.dataset.moduleId || '';
-      b.classList.toggle('active', activeModule && (mid === activeModule));
-    });
-  }
-
-  // ------------------ MODAL ------------------
-  function openInstructionModal(inst) {
+  /* --------- Modal implementation (robust) --------- */
+  function openInstructionModal(inst){
     const backdrop = $('instructionModalBackdrop');
-    if (!backdrop) return;
+    if(!backdrop) return;
     const modal = backdrop.querySelector('.modal-window');
-    if (!modal) return;
-
-    // Compose modal content (left text, right media)
     modal.innerHTML = `
-      <div class="modal-left" role="document" tabindex="0">
-        <div style="display:flex;gap:12px;align-items:center;margin-bottom:8px">
+      <div class="modal-left">
+        <div style="display:flex;gap:12px;align-items:center">
           <div id="modalBadge"></div>
-          <h2 id="modalTitle" style="margin:0;font-size:18px"></h2>
+          <h2 id="modalTitle"></h2>
         </div>
-        <p style="margin:6px 0 12px 0;"><strong>Транзакция:</strong> <span id="modalTx"></span></p>
+        <p style="margin:8px 0"><strong>Транзакция:</strong> <span id="modalTx"></span></p>
         <div id="modalSteps"></div>
         <div id="modalNotes" style="margin-top:10px"></div>
       </div>
-      <div class="modal-right" aria-hidden="false">
-        <div id="modalMediaArea">
-          <div class="modal-main-media" id="modalMainPreview"></div>
-          <div class="modal-thumbs" id="modalThumbs"></div>
-          <div class="media-controls" id="modalControls"></div>
-        </div>
+      <div class="modal-right">
+        <div id="modalMainPreview" class="modal-main-media"></div>
+        <div id="modalThumbs" class="modal-thumbs"></div>
+        <div id="modalControls" class="media-controls"></div>
       </div>
     `;
-
-    // fill textual
+    // fill
     $('modalTitle').textContent = inst.title || 'Инструкция';
     $('modalTx').textContent = inst.transactionCode || '-';
-
-    // badge
-    const moduleObj = modulesCache.find(m => m.id === inst.moduleId) || null;
-    const code = moduleObj && moduleObj.code ? moduleObj.code : '';
-    const name = moduleObj && moduleObj.name ? moduleObj.name : (inst.moduleId || '');
-    const color = getColorForModule(code || name);
-    $('modalBadge').innerHTML = `<span class="fiori-badge"><span class="fiori-badge-code" style="background:${color}">${escapeHtml(code || (name?name[0]:''))}</span></span>`;
-
+    const moduleObj = modulesCache.find(m => m.id === inst.moduleId) || {};
+    const code = moduleObj.code || (moduleObj.name ? moduleObj.name[0] : '');
+    const color = getColorForModule(moduleObj.code || moduleObj.name || inst.moduleId || '');
+    $('modalBadge').innerHTML = `<span class="fiori-badge"><span class="fiori-badge-code" style="background:${color}">${escapeHtml(code)}</span></span>`;
     // steps
-    if (inst.steps && inst.steps.length) {
-      const stepsHtml = inst.steps.map((s, idx) => `<div class="step">Шаг ${idx+1}: ${escapeHtml(s)}</div>`).join('');
-      $('modalSteps').innerHTML = `<h3>Шаги</h3><div class="steps-block">${stepsHtml}</div>`;
-    } else {
-      $('modalSteps').innerHTML = '<p><em>Шаги не указаны</em></p>';
-    }
-
+    if(inst.steps && inst.steps.length){
+      $('modalSteps').innerHTML = '<h3>Шаги</h3>' + inst.steps.map((s,i)=>`<div class="step">Шаг ${i+1}: ${escapeHtml(s)}</div>`).join('');
+    } else { $('modalSteps').innerHTML = '<p><em>Шаги не указаны</em></p>'; }
     // notes
-    if (inst.notes) {
-      $('modalNotes').innerHTML = `<h3>Примечания</h3><div class="modal-notes">${escapeHtml(inst.notes)}</div>`;
-    } else {
-      $('modalNotes').innerHTML = '';
-    }
-
+    if(inst.notes) $('modalNotes').innerHTML = '<h3>Примечания</h3><div class="modal-notes">' + escapeHtml(inst.notes) + '</div>';
+    else $('modalNotes').innerHTML = '';
     // media
     const mediaList = Array.isArray(inst.media) ? inst.media.slice() : [];
-    const mainPreview = $('modalMainPreview');
-    const thumbs = $('modalThumbs');
-    const controls = $('modalControls');
-
-    mainPreview.innerHTML = '';
-    thumbs.innerHTML = '';
-    controls.innerHTML = '';
-
-    if (!mediaList.length) {
-      mainPreview.innerHTML = `<div style="padding:20px;color:#94a3b8">Нет медиа</div>`;
-      controls.classList.add('hidden');
+    const main = $('modalMainPreview'), thumbs = $('modalThumbs'), ctrls = $('modalControls');
+    main.innerHTML=''; thumbs.innerHTML=''; ctrls.innerHTML='';
+    if(!mediaList.length){
+      main.innerHTML = `<div style="padding:20px;color:#94a3b8">Нет медиа</div>`;
     } else {
-      // prepare thumbs
+      // thumbs
       mediaList.forEach((m, idx) => {
-        const t = document.createElement('div');
-        t.className = 'thumb';
-        t.dataset.index = idx;
-        // decide thumb content
-        if ((m.type === 'image' && isImageUrl(m.url)) || isImageUrl(m.url)) {
-          const img = document.createElement('img');
-          img.src = m.url;
-          img.alt = m.filename || fileNameFromUrl(m.url);
-          img.style.width = '100%';
-          img.style.height = '100%';
-          img.style.objectFit = 'cover';
-          img.addEventListener('error', () => {
-            t.innerHTML = `<div class="small">${escapeHtml(m.filename || fileNameFromUrl(m.url) || 'Файл')}</div>`;
-          });
+        const t = document.createElement('div'); t.className='thumb'; t.dataset.i = idx;
+        if((m.type==='image' && isImage(m.url)) || isImage(m.url)){
+          const img = document.createElement('img'); img.src = m.url; img.alt = m.filename||fileNameFromUrl(m.url);
+          img.style.width='100%'; img.style.height='100%'; img.style.objectFit='cover';
           t.appendChild(img);
-        } else if ((m.type === 'video' && isVideoUrl(m.url)) || isVideoUrl(m.url)) {
-          const vid = document.createElement('video');
-          vid.src = m.url;
-          vid.muted = true; vid.loop = true; vid.autoplay = true;
-          vid.style.width = '100%'; vid.style.height = '100%'; vid.style.objectFit = 'cover';
-          t.appendChild(vid);
+        } else if((m.type==='video' && isVideo(m.url)) || isVideo(m.url)){
+          const v = document.createElement('video'); v.src = m.url; v.muted=true; v.loop=true; v.autoplay=true; v.style.width='100%'; v.style.height='100%'; t.appendChild(v);
         } else {
-          t.innerHTML = `<div style="padding:8px;text-align:center;font-size:13px;color:#0b1220">${escapeHtml(m.filename || fileNameFromUrl(m.url) || 'Файл')}</div>`;
+          t.innerHTML = `<div style="padding:8px;font-size:13px;color:#0b1220;text-align:center">${escapeHtml(m.filename||fileNameFromUrl(m.url)||'Файл')}</div>`;
         }
-        t.addEventListener('click', () => renderMain(idx));
+        t.addEventListener('click', ()=> renderMain(idx));
         thumbs.appendChild(t);
       });
-
-      let currentIndex = 0;
-      function renderMain(i) {
-        currentIndex = i;
-        mainPreview.innerHTML = '';
+      let cur = 0;
+      function renderMain(i){
+        cur = i;
+        main.innerHTML = '';
         const m = mediaList[i];
-        if (!m) return;
         const url = m.url || '';
-        // determine type robustly
-        let type = (m.type || '').toLowerCase();
-        if (!type) {
-          if (isImageUrl(url)) type = 'image';
-          else if (isVideoUrl(url)) type = 'video';
-          else type = 'file';
+        let type = (m.type||'').toLowerCase();
+        if(!type){ type = isImage(url)?'image':isVideo(url)?'video':'file'; }
+        if(type==='image'){
+          const img = document.createElement('img'); img.src = url; img.style.maxWidth='100%'; img.style.maxHeight='100%'; img.addEventListener('click', ()=> openImageLightbox(url));
+          main.appendChild(img);
+        } else if(type==='video'){
+          const video = document.createElement('video'); video.src = url; video.controls=true; main.appendChild(video);
         } else {
-          // sanity: if declared image but extension not image -> fallback to file
-          if (type === 'image' && !isImageUrl(url)) type = 'file';
-          if (type === 'video' && !isVideoUrl(url)) type = 'file';
+          const div = document.createElement('div'); div.className='file-card';
+          div.innerHTML = `<div style="display:flex;gap:12px;align-items:center"><div class="icon">FILE</div><div><div style="font-weight:700">${escapeHtml(m.filename||fileNameFromUrl(url)||'Файл')}</div><div class="small">Тип: файл</div></div></div><div><a class="holo-button" href="${url}" download target="_blank">Скачать</a></div>`;
+          main.appendChild(div);
         }
-
-        if (type === 'image') {
-          const img = document.createElement('img');
-          img.src = url;
-          img.alt = m.filename || fileNameFromUrl(url);
-          img.style.maxWidth = '100%';
-          img.style.maxHeight = '100%';
-          img.addEventListener('click', () => openImageLightbox(url));
-          img.addEventListener('error', () => {
-            mainPreview.innerHTML = `<div style="padding:16px;color:#b91c1c">Не удалось загрузить изображение</div>`;
-          });
-          mainPreview.appendChild(img);
-        } else if (type === 'video') {
-          const video = document.createElement('video');
-          video.src = url;
-          video.controls = true;
-          video.style.maxHeight = '100%';
-          video.addEventListener('error', () => {
-            mainPreview.innerHTML = `<div style="padding:16px;color:#b91c1c">Не удалось загрузить видео</div>`;
-          });
-          mainPreview.appendChild(video);
-        } else {
-          // file fallback card with download
-          const wrap = document.createElement('div');
-          wrap.className = 'file-card';
-          wrap.style.display = 'flex';
-          wrap.style.alignItems = 'center';
-          wrap.style.justifyContent = 'space-between';
-          wrap.innerHTML = `
-            <div style="display:flex;gap:12px;align-items:center;">
-              <div class="icon" style="width:56px;height:56px;border-radius:10px;background:linear-gradient(180deg,#f8fafc,#eef2ff);display:flex;align-items:center;justify-content:center;color:#0b1220;font-weight:700">FILE</div>
-              <div>
-                <div style="font-weight:700">${escapeHtml(m.filename || fileNameFromUrl(url) || 'Файл')}</div>
-                <div class="small" style="color:#64748b;margin-top:6px">Тип: файл</div>
-              </div>
-            </div>
-            <div><a class="holo-button" href="${url}" download target="_blank">Скачать</a></div>
-          `;
-          mainPreview.appendChild(wrap);
-        }
-
         // mark active thumb
-        thumbs.querySelectorAll('.thumb').forEach((t, idx) => t.classList.toggle('active', idx === i));
+        thumbs.querySelectorAll('.thumb').forEach((tt,ii)=> tt.classList.toggle('active', ii===i));
       }
-
-      // controls (prev/next/download)
-      if (mediaList.length > 1) {
-        controls.classList.remove('hidden');
-        controls.innerHTML = `
-          <div style="display:flex;gap:8px">
-            <button class="holo-button modal-prev">◀</button>
-            <button class="holo-button modal-next">▶</button>
-          </div>
-          <div style="display:flex;gap:8px">
-            <button class="holo-button modal-download">Скачать всё</button>
-          </div>
-        `;
-        controls.querySelector('.modal-prev').addEventListener('click', () => {
-          renderMain((currentIndex - 1 + mediaList.length) % mediaList.length);
+      // controls: prev/next if >1
+      if(mediaList.length>1){
+        ctrls.innerHTML = `<div style="display:flex;gap:8px"><button class="holo-button modal-prev">◀</button><button class="holo-button modal-next">▶</button></div><div><button class="holo-button modal-download">Скачать всё</button></div>`;
+        ctrls.querySelector('.modal-prev').addEventListener('click', ()=> renderMain((cur-1+mediaList.length)%mediaList.length));
+        ctrls.querySelector('.modal-next').addEventListener('click', ()=> renderMain((cur+1)%mediaList.length));
+        ctrls.querySelector('.modal-download').addEventListener('click', ()=> {
+          mediaList.forEach(m=>{ const a=document.createElement('a'); a.href=m.url; a.download=m.filename||fileNameFromUrl(m.url); a.target='_blank'; document.body.appendChild(a); a.click(); a.remove(); });
         });
-        controls.querySelector('.modal-next').addEventListener('click', () => {
-          renderMain((currentIndex + 1) % mediaList.length);
-        });
-        controls.querySelector('.modal-download').addEventListener('click', () => {
-          mediaList.forEach(m => {
-            const a = document.createElement('a');
-            a.href = m.url;
-            a.download = m.filename || fileNameFromUrl(m.url);
-            a.target = '_blank';
-            document.body.appendChild(a);
-            a.click();
-            a.remove();
-          });
-        });
-      } else {
-        controls.classList.add('hidden');
-        // single download button
-        const dlWrap = document.createElement('div');
-        dlWrap.style.display = 'flex';
-        dlWrap.style.justifyContent = 'flex-end';
-        dlWrap.style.marginTop = '8px';
-        const btn = document.createElement('button');
-        btn.className = 'holo-button';
-        btn.textContent = 'Скачать';
-        btn.addEventListener('click', () => {
-          const m = mediaList[0];
-          const a = document.createElement('a');
-          a.href = m.url;
-          a.download = m.filename || fileNameFromUrl(m.url);
-          a.target = '_blank';
-          document.body.appendChild(a);
-          a.click();
-          a.remove();
-        });
-        dlWrap.appendChild(btn);
-        $('modalMediaArea').appendChild(dlWrap);
       }
-
-      // initial render
       renderMain(0);
     }
 
     // show backdrop
-    backdrop.style.display = 'flex';
-    // small delay then add class (CSS animations)
-    setTimeout(() => backdrop.classList.add('show'), 10);
+    backdrop.style.display='flex'; setTimeout(()=>backdrop.classList.add('show'),10);
 
-    // close on backdrop click
-    backdrop.addEventListener('click', function onBk(e) {
-      if (e.target === backdrop) {
-        backdrop.classList.remove('show');
-        setTimeout(() => { backdrop.style.display = 'none'; modal.innerHTML = ''; backdrop.removeEventListener('click', onBk); }, 260);
-      }
-    }, { once: true });
-
-    // Esc key handler
-    const escHandler = (e) => {
-      if (e.key === 'Escape') {
-        backdrop.classList.remove('show');
-        setTimeout(() => { backdrop.style.display = 'none'; modal.innerHTML = ''; document.removeEventListener('keydown', escHandler); }, 260);
-      }
-    };
-    document.addEventListener('keydown', escHandler);
+    // close handlers
+    function closeAll(){
+      backdrop.classList.remove('show'); setTimeout(()=>{ backdrop.style.display='none'; modal.innerHTML=''; },240);
+      document.removeEventListener('keydown', onEsc);
+    }
+    function onEsc(e){ if(e.key==='Escape') closeAll(); }
+    document.addEventListener('keydown', onEsc);
+    backdrop.addEventListener('click', function onBk(e){ if(e.target===backdrop){ closeAll(); backdrop.removeEventListener('click', onBk); }}, { once:true });
   }
 
-  // Lightbox
-  function openImageLightbox(src) {
-    const lb = $('imageLightbox');
-    const img = $('lightboxImg');
-    if (!lb || !img) return;
-    img.src = src;
-    lb.style.display = 'flex';
-    setTimeout(()=> lb.classList.add('show'), 10);
-    // close click
-    lb.addEventListener('click', function onL(e) {
-      if (e.target === lb || e.target === img) {
-        lb.classList.remove('show');
-        setTimeout(()=> { lb.style.display='none'; img.src=''; lb.removeEventListener('click', onL); }, 160);
-      }
-    }, { once: true });
+  function openImageLightbox(src){
+    const lb = $('imageLightbox'); const img = $('lightboxImg'); if(!lb||!img) return;
+    img.src = src; lb.style.display='flex'; setTimeout(()=> lb.classList.add('show'),10);
+    lb.addEventListener('click', function onL(e){ if(e.target===lb||e.target===img){ lb.classList.remove('show'); setTimeout(()=>{ lb.style.display='none'; img.src=''; },160); lb.removeEventListener('click', onL); }}, { once:true });
   }
 
-  // Update badges colors (global)
-  function updateBadgeColors() {
-    document.querySelectorAll('.fiori-badge .fiori-badge-code').forEach(el => {
-      // already set via inline style when rendering card; nothing to do
+  // init listeners
+  function initListeners(){
+    $('reloadBtn')?.addEventListener('click', async ()=>{
+      $('searchInput') && ($('searchInput').value='');
+      $('moduleFilter') && ($('moduleFilter').value='');
+      await loadModules(); await loadInstructions();
+      const main = document.querySelector('main'); if(main) window.scrollTo({ top: main.getBoundingClientRect().top + window.scrollY - 8, behavior:'smooth' });
     });
+    $('searchInput')?.addEventListener('keyup', (e)=>{ if(e.key==='Enter') applyFilters(); });
+    $('moduleFilter')?.addEventListener('change', ()=> applyFilters());
   }
 
-  // Initialization + listeners
-  function initListeners() {
-    $('reloadBtn')?.addEventListener('click', async () => {
-      $('searchInput') && ( $('searchInput').value = '' );
-      $('moduleFilter') && ( $('moduleFilter').value = '' );
-      await loadModules();
-      await loadInstructions();
-      // scroll to top
-      const main = document.querySelector('main');
-      if (main) window.scrollTo({ top: main.getBoundingClientRect().top + window.scrollY - 8, behavior: 'smooth' });
-    });
-
-    $('searchInput')?.addEventListener('keyup', (e) => {
-      if (e.key === 'Enter') applyFilters();
-    });
-
-    $('moduleFilter')?.addEventListener('change', () => {
-      applyFilters();
-      updateActiveBadges();
-    });
-
-    // card open by click delegated
-    document.getElementById('instructionsSection')?.addEventListener('click', (e) => {
-      const card = e.target.closest('.instruction-card');
-      if (!card) return;
-      const id = card.dataset.id;
-      const inst = instructionsCache.find(i => i.id === id);
-      if (inst) openInstructionModal(inst);
-    });
-  }
-
-  // On load: fetch, render, handle inst param
-  (async function init() {
+  // init
+  (async function init(){
+    initListeners();
     await loadModules();
     await loadInstructions();
-
-    // if URL has ?inst=ID open that one
-    const params = new URLSearchParams(window.location.search);
-    const instId = params.get('inst');
-    if (instId) {
-      const inst = instructionsCache.find(i => i.id === instId);
-      if (inst) setTimeout(()=> openInstructionModal(inst), 300);
+    // open by URL param ?inst=ID
+    const params = new URLSearchParams(window.location.search); const instId = params.get('inst');
+    if(instId){
+      const inst = instructionsCache.find(i=>i.id===instId);
+      if(inst) setTimeout(()=> openInstructionModal(inst),300);
     }
   })();
 
-  // Attach public API for ui-enhancements (optional)
-  window.__uiEnhanceReinit = () => {
-    // used by ui-enhancements to re-init animations
-    // e.g. parallax scripts can call this after re-render
-    // currently no-op, but available
-  };
-
-  initListeners();
-
 })();
-
-
