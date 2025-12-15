@@ -294,7 +294,7 @@ function openInstructionModal(inst) {
               <div style="font-weight:700;">${escapeHtml(m.filename || fileNameFromUrl(url))}</div>
               <div style="color:#6b7280;font-size:13px;margin-top:6px;">Тип: файл (не изображение)</div>
             </div>
-            <div style="margin-left:12px"><a class="secondary" href="${escapeHtml(url)}" download target="_blank"></a></div>
+            <div style="margin-left:12px"><a class="secondary" href="${escapeHtml(url)}" download target="_blank">Скачать</a></div>
           </div>
         `;
         mainPreview.appendChild(wrap);
@@ -321,7 +321,7 @@ function openInstructionModal(inst) {
             <div style="font-weight:700;">${escapeHtml(m.filename || fileNameFromUrl(url))}</div>
             <div style="color:#6b7280;font-size:13px;margin-top:6px;">Тип: файл</div>
           </div>
-          <div style="margin-left:12px"><a class="secondary" href="${escapeHtml(url)}" download target="_blank">Скачать</a></div>
+
         </div>
       `;
       mainPreview.appendChild(wrap);
