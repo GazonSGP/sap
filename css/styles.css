@@ -1,4 +1,4 @@
-/* docs/css/styles.css — SAP Fiori-like + Electric Card */
+/* docs/css/styles.css — SAP Fiori-like + WORKING Electric Card */
 
 /* =========== Токены =========== */
 :root{
@@ -19,13 +19,14 @@
   --shadow-soft: 0 6px 18px rgba(16,24,40,0.06);
   --shadow-strong: 0 12px 36px rgba(16,24,40,0.12);
 
-  /* electric */
+  /* Electric */
   --electric: #3cf2ff;
 }
 
 /* =========== База =========== */
-*{box-sizing:border-box}
-html,body{height:100%}
+*{ box-sizing:border-box }
+html,body{ height:100% }
+
 body{
   margin:0;
   font-family:"Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
@@ -39,6 +40,7 @@ header{
   display:flex;
   justify-content:space-between;
   align-items:center;
+  gap:12px;
   padding:12px 20px;
   background:var(--shell);
   color:var(--shell-text);
@@ -61,6 +63,30 @@ main{
   box-shadow:var(--shadow-soft);
 }
 
+/* Controls */
+input, select{
+  padding:8px 10px;
+  border-radius:8px;
+  border:1px solid var(--border);
+  font-size:13px;
+}
+
+button{
+  padding:8px 14px;
+  border-radius:8px;
+  border:none;
+  background:var(--accent);
+  color:#fff;
+  cursor:pointer;
+  font-weight:700;
+}
+
+button.secondary{
+  background:#fff;
+  color:var(--text);
+  border:1px solid var(--border);
+}
+
 /* Grid */
 .list{
   display:grid;
@@ -69,10 +95,12 @@ main{
 }
 
 /* =========================================================
-   INSTRUCTION CARD + ELECTRIC EFFECT
+   INSTRUCTION CARD + ELECTRIC CARD (FIXED)
    ========================================================= */
+
 .instruction-card{
   position:relative;
+  isolation:isolate;            /* КЛЮЧ */
   height:var(--card-height);
   overflow:visible;
   display:flex;
@@ -84,15 +112,15 @@ main{
   border:1px solid var(--border);
   background: linear-gradient(180deg, var(--card-bg), #fbfcfd);
   transition: transform .15s ease, box-shadow .15s ease;
-  z-index:0;
 }
 
 /* Electric border */
 .instruction-card::before{
   content:"";
   position:absolute;
-  inset:-2px;
-  border-radius:10px;
+  inset:-4px;
+  border-radius:12px;
+
   background:
     conic-gradient(
       from 0deg,
@@ -102,21 +130,20 @@ main{
       var(--electric),
       transparent
     );
-  filter: blur(6px);
+
+  filter: blur(8px);
   opacity:0;
-  z-index:-1;
-  animation:electric-spin 4s linear infinite;
+  pointer-events:none;
+  z-index:0;
+
+  animation:electric-spin 3.5s linear infinite;
   transition: opacity .25s ease;
 }
 
-/* Mask */
-.instruction-card::after{
-  content:"";
-  position:absolute;
-  inset:1px;
-  border-radius:8px;
-  background: linear-gradient(180deg, var(--card-bg), #fbfcfd);
-  z-index:-1;
+/* Контент поверх рамки */
+.instruction-card > *{
+  position:relative;
+  z-index:1;
 }
 
 /* Hover */
@@ -124,7 +151,7 @@ main{
   transform: translateY(-4px);
   box-shadow:
     var(--shadow-strong),
-    0 0 24px rgba(60,242,255,.35);
+    0 0 32px rgba(60,242,255,.6);
   border-color:transparent;
 }
 
@@ -132,6 +159,7 @@ main{
   opacity:1;
 }
 
+/* Анимация */
 @keyframes electric-spin{
   to{ transform: rotate(360deg); }
 }
@@ -153,21 +181,4 @@ main{
   overflow:hidden;
   font-size:13px;
   color:var(--muted);
-}
-
-/* Buttons */
-button{
-  padding:8px 14px;
-  border-radius:8px;
-  border:none;
-  background:var(--accent);
-  color:#fff;
-  cursor:pointer;
-  font-weight:700;
-}
-
-button.secondary{
-  background:#fff;
-  color:var(--text);
-  border:1px solid var(--border);
 }
