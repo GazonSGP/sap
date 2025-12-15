@@ -1,4 +1,4 @@
-/* docs/css/styles.css — SAP Fiori-like + WORKING Electric Card */
+/* docs/css/styles.css — SAP Fiori-like + two-column modal + фиксы переноса */
 
 /* =========== Токены =========== */
 :root{
@@ -18,167 +18,112 @@
   --focus-ring: rgba(10,110,209,0.18);
   --shadow-soft: 0 6px 18px rgba(16,24,40,0.06);
   --shadow-strong: 0 12px 36px rgba(16,24,40,0.12);
-
-  /* Electric */
-  --electric: #3cf2ff;
 }
 
 /* =========== База =========== */
-*{ box-sizing:border-box }
-html,body{ height:100% }
-
+*{box-sizing:border-box}
+html,body{height:100%}
 body{
   margin:0;
   font-family:"Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
   background:var(--bg);
   color:var(--text);
+  -webkit-font-smoothing:antialiased;
+  -moz-osx-font-smoothing:grayscale;
   line-height:1.35;
 }
 
 /* Header */
-header{
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  gap:12px;
-  padding:12px 20px;
-  background:var(--shell);
-  color:var(--shell-text);
-}
+header{ display:flex; justify-content:space-between; align-items:center; gap:12px; padding:12px 20px; background:var(--shell); color:var(--shell-text); }
+header .brand{ font-weight:700; letter-spacing:.01em }
+header a{ text-decoration:none; color:var(--shell-text); background: rgba(255,255,255,0.1); padding:6px 10px; border-radius:6px; font-size:13px }
 
 /* Container */
-main{
-  max-width:1200px;
-  margin:18px auto;
-  padding:14px 18px 40px;
-}
+main{ max-width:1200px; margin:18px auto; padding:14px 18px 40px; }
 
-/* Card base */
-.card{
-  background:var(--card-bg);
-  border-radius:var(--radius);
-  border:1px solid var(--border);
-  padding:14px 16px;
-  margin-bottom:12px;
-  box-shadow:var(--shadow-soft);
-}
+/* Card */
+.card{ background:var(--card-bg); border-radius:var(--radius); border:1px solid var(--border); padding:14px 16px; margin-bottom:12px; box-shadow:var(--shadow-soft); }
+.card h2, .card h3 { margin:0 0 8px 0; font-size:15px; font-weight:600; }
+.card p{ margin:6px 0; color:var(--muted); font-size:13px; }
 
 /* Controls */
-input, select{
-  padding:8px 10px;
-  border-radius:8px;
-  border:1px solid var(--border);
-  font-size:13px;
-}
-
-button{
-  padding:8px 14px;
-  border-radius:8px;
-  border:none;
-  background:var(--accent);
-  color:#fff;
-  cursor:pointer;
-  font-weight:700;
-}
-
-button.secondary{
-  background:#fff;
-  color:var(--text);
-  border:1px solid var(--border);
-}
+.controls{ display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:6px; }
+input[type="text"], select{ min-width:200px; padding:8px 10px; border-radius:8px; border:1px solid var(--border); background:#fff; color:var(--text); outline:none; font-size:13px }
+input:focus, select:focus{ box-shadow: 0 0 0 4px var(--focus-ring); border-color:var(--accent) }
+button{ padding:8px 14px; border-radius:8px; border:none; background:var(--accent); color:#fff; cursor:pointer; font-weight:700 }
+button.secondary{ background:#fff; color:var(--text); border:1px solid var(--border) }
+button.danger{ background:var(--danger); color:#fff }
 
 /* Grid */
-.list{
-  display:grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-  gap:12px;
-}
+.list{ display:grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap:12px; }
 
-/* =========================================================
-   INSTRUCTION CARD + ELECTRIC CARD (FIXED)
-   ========================================================= */
-
+/* Instruction card */
 .instruction-card{
-  position:relative;
-  isolation:isolate;            /* КЛЮЧ */
-  height:var(--card-height);
-  overflow:visible;
-  display:flex;
-  flex-direction:column;
-  gap:8px;
-  padding:12px;
-  cursor:pointer;
-  border-radius:8px;
-  border:1px solid var(--border);
-  background: linear-gradient(180deg, var(--card-bg), #fbfcfd);
-  transition: transform .15s ease, box-shadow .15s ease;
+  position:relative; height:var(--card-height); overflow:hidden; display:flex; flex-direction:column; gap:8px;
+  padding:12px; cursor:pointer; transition: transform .12s ease, box-shadow .12s ease, border-color .12s ease;
+  border-radius:8px; border:1px solid var(--border); background: linear-gradient(180deg, var(--card-bg), #fbfcfd);
+}
+.instruction-card:hover{ transform: translateY(-4px); box-shadow: var(--shadow-strong); border-color:var(--border-strong) }
+.instruction-card .meta { font-size:13px; color:var(--muted); margin-bottom:4px; }
+.instruction-card .content{ flex:1 1 auto; overflow:hidden; font-size:13px; color:var(--muted) }
+.instruction-card .content p{ margin:4px 0; display:-webkit-box; -webkit-line-clamp:8; -webkit-box-orient:vertical; overflow:hidden; text-overflow:ellipsis; }
+.instruction-card .footer{ font-size:13px; color:var(--muted) }
+
+/* Fiori badge (compact square) */
+.fiori-badge{ display:inline-flex; align-items:center; gap:8px; user-select:none }
+.fiori-badge.clickable{ cursor:pointer }
+.fiori-badge-code{
+  display:inline-flex; align-items:center; justify-content:center;
+  min-width:36px; height:24px; padding:0 6px; color:#fff; border-radius:6px; font-weight:700; font-size:12px;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.08); transition: transform .12s ease, filter .12s ease;
+}
+.fiori-badge.active .fiori-badge-code{ box-shadow: 0 8px 26px rgba(0,0,0,0.12); outline: 3px solid rgba(10,110,209,0.12); transform: translateY(-2px) }
+.instruction-card .fiori-badge.active{ border-radius:8px; padding:4px; background:rgba(10,110,209,0.04) }
+
+/* =========== МОДАЛКА =========== */
+.modal-backdrop{ position:fixed; inset:0; background:rgba(15,23,42,0.45); display:none; justify-content:center; align-items:center; z-index:60 }
+.modal-window{
+  width:100%; max-width:1100px; max-height:90vh; background:var(--card-bg); border-radius:10px; padding:14px; border:1px solid var(--border); box-shadow:var(--shadow-strong);
+  display:grid; grid-template-columns: 1fr 360px; gap:18px;
+}
+.modal-header{ grid-column: 1 / -1; display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:6px }
+.modal-left{ overflow-y:auto; max-height:70vh; padding-right:6px }
+.modal-right{ display:flex; flex-direction:column; gap:10px; max-height:70vh; overflow:hidden }
+
+/* main media + thumbs + controls */
+.modal-main-media{ flex:0 0 58%; border-radius:8px; overflow:hidden; background:#f7fafc; display:flex; align-items:center; justify-content:center }
+.modal-main-media img, .modal-main-media video{ width:100%; height:100%; object-fit:contain }
+.modal-thumbs{ flex:1 1 auto; overflow-y:auto; display:flex; flex-direction:column; gap:8px; padding-right:6px; min-height:72px }
+.modal-thumbs .thumb{ height:72px; border-radius:6px; overflow:hidden; cursor:pointer; border:2px solid transparent; display:flex; align-items:center; justify-content:center; background:#fff }
+.modal-thumbs .thumb img, .modal-thumbs .thumb video{ max-width:100%; max-height:100%; object-fit:cover }
+.modal-thumbs .thumb.active{ border-color: rgba(10,110,209,0.9); box-shadow: 0 6px 18px rgba(10,110,209,0.12) }
+
+/* step style */
+.steps-block .step{ background: #f3f7fb; padding:10px 12px; border-radius:8px; margin-bottom:8px; border:1px solid rgba(10,110,209,0.04) }
+
+/* notes: перенос и ограничение */
+.modal-notes{
+  background:#ffffff; border-radius:8px; padding:10px; border:1px solid var(--border); margin-top:8px; color:var(--text);
+  white-space: pre-wrap; word-break: break-word; overflow-wrap: anywhere; overflow:auto; max-width:100%;
 }
 
-/* Electric border */
-.instruction-card::before{
-  content:"";
-  position:absolute;
-  inset:-4px;
-  border-radius:12px;
+/* controls row: скрываем через класс hidden */
+.media-controls{ display:flex; gap:8px; align-items:center; justify-content:space-between; margin-top:6px }
+.media-controls.hidden{ display:none !important }
 
-  background:
-    conic-gradient(
-      from 0deg,
-      transparent,
-      var(--electric),
-      transparent,
-      var(--electric),
-      transparent
-    );
-
-  filter: blur(8px);
-  opacity:0;
-  pointer-events:none;
-  z-index:0;
-
-  animation:electric-spin 3.5s linear infinite;
-  transition: opacity .25s ease;
+/* responsive */
+@media (max-width:780px){
+  .modal-window{ grid-template-columns: 1fr; max-width:96% }
+  .modal-left{ max-height:none } .modal-right{ order:2; max-height:none }
+  .modal-main-media{ flex:0 0 auto; height:220px }
+  .modal-thumbs{ flex-direction:row; overflow-x:auto; gap:6px; height:84px }
+  .modal-thumbs .thumb{ width:120px; height:72px; flex:0 0 auto }
 }
 
-/* Контент поверх рамки */
-.instruction-card > *{
-  position:relative;
-  z-index:1;
-}
+/* Lightbox */
+.image-lightbox{ position:fixed; inset:0; display:flex; justify-content:center; align-items:center; background:rgba(15,23,42,0.75); z-index:80 }
+.image-lightbox-inner{ max-width:95vw; max-height:95vh }
+.image-lightbox-inner img{ max-width:100%; max-height:95vh; border-radius:12px; box-shadow:0 20px 40px rgba(0,0,0,0.6) }
 
-/* Hover */
-.instruction-card:hover{
-  transform: translateY(-4px);
-  box-shadow:
-    var(--shadow-strong),
-    0 0 32px rgba(60,242,255,.6);
-  border-color:transparent;
-}
-
-.instruction-card:hover::before{
-  opacity:1;
-}
-
-/* Анимация */
-@keyframes electric-spin{
-  to{ transform: rotate(360deg); }
-}
-
-/* Content */
-.instruction-card h3{
-  margin:0 0 6px;
-  font-size:14px;
-  font-weight:600;
-}
-
-.instruction-card .meta{
-  font-size:13px;
-  color:var(--muted);
-}
-
-.instruction-card .content{
-  flex:1;
-  overflow:hidden;
-  font-size:13px;
-  color:var(--muted);
-}
+/* Utilities */
+.sr-only{ position:absolute!important; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0 }
