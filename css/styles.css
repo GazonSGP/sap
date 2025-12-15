@@ -71,7 +71,6 @@ main{
 /* =========================================================
    INSTRUCTION CARD + ELECTRIC EFFECT
    ========================================================= */
-
 .instruction-card{
   position:relative;
   height:var(--card-height);
