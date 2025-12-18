@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <title>SAP Инструкции</title>
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+<header>
+  <div><strong>SAP Инструкции</strong></div>
+  <a href="https://github.com/GazonSGP/sap" target="_blank">Репозиторий GitHub</a>
+</header>
+
+<main>
+  <section class="card">
+    <h2>Поиск инструкций</h2>
+    <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+      <input
+        id="searchInput"
+        placeholder="Поиск по названию, транзакции или описанию"
+      />
+      <select id="moduleFilter" style="max-width:220px;">
+        <option value="">Все модули</option>
+      </select>
+      <button id="reloadBtn">Обновить</button>
+
+      <!-- Переключатель 3D -->
+      <label class="toggle-3d" style="margin-left:auto;">
+        <input type="checkbox" id="toggle3d" checked />
+        <span class="slider"></span>
+        <span class="label">3D карточки</span>
+      </label>
+    </div>
+  </section>
+
+  <section id="emptyState" class="card" style="display:none;">
+    <h3>Пока нет ни одной инструкции</h3>
+  </section>
+
+  <section id="instructionsSection" class="list"></section>
+</main>
+
+<div
+  id="instructionModalBackdrop"
+  class="modal-backdrop"
+  style="display:none;"
+></div>
+
+<div id="imageLightbox" class="image-lightbox" style="display:none;">
+  <div class="image-lightbox-inner">
+    <img id="lightboxImg" src="" />
+  </div>
+</div>
+
+<script type="module" src="js/app.js"></script>
+</body>
+</html>
