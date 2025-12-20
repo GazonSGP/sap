@@ -1,0 +1,942 @@
+/* docs/css/styles.css — SAP Fiori-like + two-column modal (STABLE + SOFT BACKDROP) */
+
+/* =========== Токены =========== */
+:root{
+  --bg:#f5f7f9;
+  --shell:#0a6ed1;
+  --shell-text:#ffffff;
+  --card-bg:#ffffff;
+  --muted:#6b7176;
+  --text:#222428;
+  --border:#e6eaee;
+  --border-strong:#c9d1d8;
+  --accent:#0a6ed1;
+  --accent-soft:rgba(10,110,209,0.08);
+  --danger:#d03b2f;
+  --card-height:240px;
+  --radius:10px;
+  --focus-ring:rgba(10,110,209,0.18);
+  --shadow-soft:0 6px 18px rgba(16,24,40,0.06);
+  --shadow-strong:0 12px 36px rgba(16,24,40,0.12);
+}
+
+/* =========== База =========== */
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0;
+  font-family:"Segoe UI",system-ui,-apple-system,"Helvetica Neue",Arial,sans-serif;
+  background:var(--bg);
+  color:var(--text);
+  -webkit-font-smoothing:antialiased;
+  -moz-osx-font-smoothing:grayscale;
+  line-height:1.35;
+}
+
+/* блокируем скролл при модалке */
+body.modal-open{overflow:hidden}
+
+/* Header */
+header{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:12px;
+  padding:12px 20px;
+  background:var(--shell);
+  color:var(--shell-text);
+}
+header .brand{font-weight:700;letter-spacing:.01em}
+header a{
+  text-decoration:none;
+  color:var(--shell-text);
+  background:rgba(255,255,255,.1);
+  padding:6px 10px;
+  border-radius:6px;
+  font-size:13px;
+}
+
+/* Container */
+main{
+  max-width:1200px;
+  margin:18px auto;
+  padding:14px 18px 40px;
+}
+
+/* Card */
+.card{
+  background:var(--card-bg);
+  border-radius:var(--radius);
+  border:1px solid var(--border);
+  padding:14px 16px;
+  margin-bottom:12px;
+  box-shadow:var(--shadow-soft);
+}
+.card h2,.card h3{
+  margin:0 0 8px;
+  font-size:15px;
+  font-weight:600;
+}
+.card p{
+  margin:6px 0;
+  color:var(--muted);
+  font-size:13px;
+}
+
+/* Controls */
+.controls{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+  align-items:center;
+  margin-bottom:6px;
+}
+input[type="text"],select{
+  min-width:200px;
+  padding:8px 10px;
+  border-radius:8px;
+  border:1px solid var(--border);
+  background:#fff;
+  color:var(--text);
+  outline:none;
+  font-size:13px;
+}
+input:focus,select:focus{
+  box-shadow:0 0 0 4px var(--focus-ring);
+  border-color:var(--accent);
+}
+button{
+  padding:8px 14px;
+  border-radius:8px;
+  border:none;
+  background:var(--accent);
+  color:#fff;
+  cursor:pointer;
+  font-weight:700;
+}
+button.secondary{
+  background:#fff;
+  color:var(--text);
+  border:2px solid #798da3;
+}
+button.danger{
+  background:var(--danger);
+  color:#fff;
+}
+
+/* Grid */
+.list{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(260px,1fr));
+  gap:12px;
+}
+
+/* Instruction card */
+.instruction-card{
+  position:relative;
+  height:var(--card-height);
+  overflow:hidden;
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+  padding:12px;
+  cursor:pointer;
+  transition:transform .12s ease,box-shadow .12s ease,border-color .12s ease;
+  border-radius:8px;
+  border:1px solid var(--border);
+  background:linear-gradient(180deg,var(--card-bg),#fbfcfd);
+}
+.instruction-card:hover{
+  transform:translateY(-4px);
+  box-shadow:var(--shadow-strong);
+  border-color:var(--border-strong);
+}
+.instruction-card .meta{
+  font-size:13px;
+  color:var(--muted);
+  margin-bottom:4px;
+}
+.instruction-card .content{
+  flex:1 1 auto;
+  overflow:hidden;
+  font-size:13px;
+  color:var(--muted);
+}
+.instruction-card .content p{
+  margin:4px 0;
+  display:-webkit-box;
+  -webkit-line-clamp:8;
+  -webkit-box-orient:vertical;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.instruction-card .footer{
+  font-size:13px;
+  color:var(--muted);
+}
+
+/* Fiori badge */
+.fiori-badge{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  user-select:none;
+}
+.fiori-badge-code{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-width:36px;
+  height:24px;
+  padding:0 6px;
+  color:#fff;
+  border-radius:6px;
+  font-weight:700;
+  font-size:12px;
+  box-shadow:0 6px 18px rgba(0,0,0,.08);
+}
+
+/* =========== MODAL =========== */
+.modal-backdrop{
+  position:fixed;
+  inset:0;
+  display:flex;              /* КЛЮЧ */
+  justify-content:center;
+  align-items:center;
+  z-index:60;
+
+  background:rgba(15,23,42,.25);
+  backdrop-filter:blur(0);
+  -webkit-backdrop-filter:blur(0);
+
+  opacity:0;
+  visibility:hidden;
+  pointer-events:none;
+
+  transition:
+    opacity .35s ease,
+    background .35s ease,
+    backdrop-filter .35s ease;
+}
+
+body.modal-open .modal-backdrop{
+  opacity:1;
+  visibility:visible;
+  pointer-events:auto;
+
+  background:rgba(15,23,42,.45);
+  backdrop-filter:blur(8px);
+  -webkit-backdrop-filter:blur(8px);
+}
+
+
+.modal-window{
+  width:100%;
+  max-width:1100px;
+  max-height:90vh;
+  background:#e0e8f7;
+  border-radius:10px;
+  padding:14px;
+  border:1px solid var(--border);
+  display:grid;
+  grid-template-columns:1fr 360px;
+  gap:18px;
+
+  opacity:1;
+  transform:none;
+
+  box-shadow:
+    0 0 0 2px color-mix(
+      in srgb,
+      var(--module-color,#0a6ed1) 55%,
+      transparent
+    ),
+    0 0 26px color-mix(
+      in srgb,
+      var(--module-color,#0a6ed1) 45%,
+      transparent
+    ),
+    var(--shadow-strong);
+}
+
+.modal-header{
+  grid-column:1/-1;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:8px;
+  margin-bottom:6px;
+}
+.modal-left{
+  overflow-y:auto;
+  max-height:70vh;
+  padding-right:6px;
+}
+.modal-right{
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+  max-height:70vh;
+  overflow:hidden;
+}
+
+/* media */
+.modal-main-media{
+  border-radius:8px;
+  border:2px solid #798da3;
+  overflow:hidden;
+  background:#f7fafc;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+.modal-main-media img,
+.modal-main-media video{
+  width:100%;
+  height:100%;
+  object-fit:contain;
+}
+
+/* steps */
+.steps-block .step{
+  background:#f3f7fb;
+  padding:10px 12px;
+  border-radius:8px;
+  margin-bottom:8px;
+  border:1px solid rgba(10,110,209,.04);
+}
+
+/* notes */
+.modal-notes{
+  background:#fff;
+  border-radius:8px;
+  padding:10px;
+  border:1px solid var(--border);
+  margin-top:8px;
+  white-space:pre-wrap;
+  word-break:break-word;
+  overflow-wrap:anywhere;
+}
+
+/* controls */
+.media-controls{
+  display:flex;
+  gap:8px;
+  align-items:center;
+  justify-content:space-between;
+  margin-top:6px;
+}
+
+/* responsive */
+@media (max-width:780px){
+  .modal-window{grid-template-columns:1fr;max-width:96%}
+  .modal-left{max-height:none}
+  .modal-right{order:2;max-height:none}
+}
+
+/* =========== LIGHTBOX =========== */
+.image-lightbox{
+  position:fixed;
+  inset:0;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  background:rgba(15,23,42,.75);
+  z-index:9999;
+}
+.image-lightbox-inner{
+  max-width:95vw;
+  max-height:95vh;
+}
+.image-lightbox-inner img{
+  max-width:100%;
+  max-height:95vh;
+  border-radius:12px;
+  box-shadow:0 20px 40px rgba(0,0,0,.6);
+}
+
+/* =========== 3D CARDS (UNCHANGED) =========== */
+
+.list{perspective:1500px}
+
+.instruction-card{z-index:0}
+
+.instruction-card.is-3d{
+  transform-style:preserve-3d;
+  will-change:transform;
+}
+.instruction-card.is-3d:hover{
+  border-color:var(--module-color,var(--border-strong));
+  box-shadow:
+    var(--shadow-strong),
+    0 0 0 2px color-mix(
+      in srgb,
+      var(--module-color,#0a6ed1) 45%,
+      transparent
+    ),
+    0 0 26px color-mix(
+      in srgb,
+      var(--module-color,#0a6ed1) 55%,
+      transparent
+    );
+}
+.instruction-card.is-3d::after{
+  content:'';
+  position:absolute;
+  inset:0;
+  border-radius:8px;
+  pointer-events:none;
+  z-index:-1;
+  background:
+    radial-gradient(
+      600px circle at var(--lx,50%) var(--ly,50%),
+      color-mix(
+        in srgb,
+        var(--module-color,#0a6ed1) 20%,
+        transparent
+      ),
+      transparent 50%
+    );
+  opacity:0;
+  transition:opacity .18s ease;
+}
+.instruction-card.is-3d:hover::after{opacity:.6}
+
+body.no-3d .instruction-card:hover{
+  transform:translateY(-4px);
+  border-color:var(--module-color,var(--border-strong));
+  box-shadow:
+    var(--shadow-strong),
+    0 0 0 2px color-mix(
+      in srgb,
+      var(--module-color,#0a6ed1) 40%,
+      transparent
+    ),
+    0 0 18px color-mix(
+      in srgb,
+      var(--module-color,#0a6ed1) 45%,
+      transparent
+    );
+}
+body.no-3d .instruction-card:not(:hover){
+  transform:none !important;
+}
+/* ================================
+   Finder-style Modal Header
+   ================================ */
+
+.modal-header{
+  position:relative;
+  padding:10px 14px;
+  margin:-14px -14px 10px; /* вытягиваем header на края модалки */
+  border-radius:10px 10px 0 0;
+
+  background:
+    linear-gradient(
+      to bottom,
+      #f6f7f8,
+      #eef0f2
+    );
+
+  box-shadow:
+    inset 0 -1px 0 rgba(0,0,0,.08);
+}
+
+/* зона слева под macOS-кнопки */
+.modal-header::before{
+  content:'';
+  position:absolute;
+  left:14px;
+  top:50%;
+  width:12px;
+  height:12px;
+  transform:translateY(-50%);
+  border-radius:50%;
+  background:#ff5f57; /* macOS close */
+  box-shadow:
+    18px 0 0 #febc2e,
+    36px 0 0 #28c840;
+}
+
+/* заголовок */
+.modal-header h2,
+.modal-header h3{
+  margin:0;
+  text-align:center;
+  font-size:14px;
+  font-weight:600;
+  color:#2b2e33;
+}
+
+/* кнопка закрытия (если есть) — делаем вторичной */
+.modal-header button,
+.modal-header .close{
+  background:none;
+  border:none;
+  color:#6b7176;
+  padding:4px 8px;
+  border-radius:6px;
+}
+
+.modal-header button:hover,
+.modal-header .close:hover{
+  background:rgba(0,0,0,.06);
+}
+/* ================================
+   Finder-style Steps (Document look)
+   ================================ */
+
+.steps-block{
+  margin-top:6px;
+}
+
+/* каждый шаг */
+.steps-block .step{
+  background:#f8f9fb;
+  border:none;
+  border-radius:8px;
+
+  padding:10px 14px;
+  margin-bottom:8px;
+
+  font-size:14px;
+  line-height:1.45;
+  color:#2b2e33;
+
+  box-shadow:
+    inset 0 0 0 1px rgba(0,0,0,.04);
+}
+
+/* номер шага (если есть span или strong) */
+.steps-block .step strong,
+.steps-block .step b{
+  font-weight:600;
+  color:#1f2328;
+}
+
+/* мягкое разделение между шагами */
+.steps-block .step + .step{
+  margin-top:2px;
+}
+
+/* заголовок "Шаги" */
+.modal-left > h3,
+.modal-left > h2{
+  margin-bottom:10px;
+  font-size:15px;
+  font-weight:600;
+  color:#2b2e33;
+}
+/* ================================
+   Finder-style Inspector Panel
+   ================================ */
+
+.modal-right{
+  background:#f3f4f6;
+  border-radius:8px;
+  padding:10px;
+
+  box-shadow:
+    inset 0 0 0 1px rgba(0,0,0,.05);
+
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+}
+
+/* Preview area */
+.modal-main-media{
+  background:#ffffff;
+  border-radius:8px;
+  border:1px solid rgba(0,0,0,.12);
+
+  padding:6px;
+}
+
+/* файл / имя */
+.modal-right .file-name,
+.modal-right .file-info{
+  font-size:13px;
+  color:#2b2e33;
+}
+
+/* список файлов */
+.modal-file-row{
+  background:#ffffff;
+  border:1px solid rgba(0,0,0,.08);
+  border-radius:6px;
+
+  padding:6px 8px;
+  font-size:13px;
+
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+
+/* hover — очень тихий */
+.modal-file-row:hover{
+  background:#f6f7f9;
+}
+
+/* controls = toolbar */
+.media-controls{
+  background:#eef0f2;
+  border-radius:6px;
+  padding:6px;
+
+  display:flex;
+  align-items:center;
+  gap:6px;
+}
+
+/* кнопка скачать — вторичная */
+.media-controls button{
+  background:#ffffff;
+  color:#2b2e33;
+  border:1px solid rgba(0,0,0,.15);
+  font-weight:500;
+}
+
+.media-controls button:hover{
+  background:#f6f7f9;
+}
+/* ================================
+   FINAL POLISH — Finder Level
+   ================================ */
+
+/* ---------- Header: фикс зоны под macOS-точки ---------- */
+.modal-header{
+  padding-left:64px; /* место под точки */
+  min-height:42px;
+  display:flex;
+  align-items:center;
+}
+
+/* точки всегда центрированы по высоте */
+.modal-header::before{
+  left:18px;
+  top:50%;
+  transform:translateY(-50%);
+}
+
+/* ---------- Body spacing polish ---------- */
+.modal-left{
+  padding-top:4px;
+}
+
+.steps-block{
+  margin-bottom:16px;
+}
+
+/* ---------- Notes → Finder Info Block ---------- */
+.modal-notes{
+  background:#f6f7f9;
+  border:1px solid rgba(0,0,0,.08);
+  color:#2b2e33;
+  font-size:13px;
+  line-height:1.45;
+
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.6);
+}
+
+/* заголовок Notes */
+.modal-left h4,
+.modal-left h3 + .modal-notes{
+  margin-top:12px;
+}
+
+/* ---------- Inspector rhythm ---------- */
+.modal-right{
+  gap:12px;
+}
+
+/* Preview визуально «основной» */
+.modal-main-media{
+  box-shadow:
+    0 1px 2px rgba(0,0,0,.08);
+}
+
+/* ---------- File rows polish ---------- */
+.modal-file-row{
+  transition:background .12s ease;
+}
+
+/* ---------- Subtle hover (Finder-style) ---------- */
+.steps-block .step:hover{
+  background:#f1f3f6;
+}
+
+.modal-file-row:hover{
+  background:#f0f2f5;
+}
+
+/* ---------- Buttons calm down ---------- */
+.media-controls button{
+  height:30px;
+  padding:0 12px;
+  border-radius:6px;
+}
+
+/* ---------- Overall typography calm ---------- */
+.modal-window{
+  font-synthesis-weight:none;
+}
+/* ================================
+   Disable macOS dots (clean Finder style)
+   ================================ */
+
+/* убираем точки */
+.modal-header::before{
+  display:none !important;
+}
+
+/* возвращаем нормальный отступ слева */
+.modal-header{
+  padding-left:16px !important;
+}
+
+/* ================================
+   Enterprise Cards — subtle wow
+   ================================ */
+
+/* базовый визуальный покой */
+.instruction-card{
+  background:linear-gradient(
+    180deg,
+    #ffffff,
+    #f9fafb
+  );
+
+  border:1px solid var(--border);
+  box-shadow:
+    0 1px 2px rgba(16,24,40,.06);
+
+  transition:
+    box-shadow .14s ease,
+    border-color .14s ease;
+}
+
+/* заголовок — якорь */
+.instruction-card h3,
+.instruction-card h2{
+  font-size:15px;
+  font-weight:600;
+  color:#1f2328;
+  letter-spacing:.01em;
+}
+
+/* описание — вторично */
+.instruction-card .content{
+  color:#6b7176;
+  line-height:1.45;
+}
+
+/* мета — системная */
+.instruction-card .meta{
+  font-size:12px;
+  color:#7a7f85;
+  letter-spacing:.02em;
+}
+
+/* subtle hover — приглашение */
+.instruction-card:hover{
+  border-color:color-mix(
+    in srgb,
+    var(--module-color,#0a6ed1) 35%,
+    var(--border)
+  );
+
+  box-shadow:
+    0 4px 12px rgba(16,24,40,.10);
+}
+
+/* 3D-карточки — делаем эффект «дороже», не сильнее */
+.instruction-card.is-3d:hover{
+  box-shadow:
+    0 8px 20px rgba(16,24,40,.14),
+    0 0 0 1px color-mix(
+      in srgb,
+      var(--module-color,#0a6ed1) 35%,
+      transparent
+    );
+}
+/* ================================
+   App Header — Finder / Enterprise
+   ================================ */
+
+header{
+  background:
+    linear-gradient(
+      to bottom,
+      #f6f7f8,
+      #eef0f2
+    );
+
+  border-bottom:none;
+
+  box-shadow:
+    inset 0 -1px 0 rgba(0,0,0,.08);
+
+  padding:14px 20px;
+  min-height:52px;
+}
+
+/* левая часть — контекст */
+header .brand{
+  font-size:15px;
+  font-weight:600;
+  color:#2b2e33;
+  letter-spacing:.01em;
+}
+
+/* ссылки / действия — вторичные */
+header a{
+  background:transparent;
+  color:#6b7176;
+  font-size:13px;
+  padding:6px 8px;
+}
+
+header a:hover{
+  background:rgba(0,0,0,.06);
+  color:#2b2e33;
+}
+
+/* общий баланс */
+header > *{
+  display:flex;
+  align-items:center;
+}
+/* ================================
+   Workspace Bar — Product Level
+   ================================ */
+
+.workspace-bar{
+  position:sticky;
+  top:0;
+  z-index:50;
+
+  display:grid;
+  grid-template-columns:auto 1fr auto;
+  align-items:center;
+  gap:16px;
+
+  height:58px;
+  padding:0 20px;
+
+  background:
+    linear-gradient(
+      to bottom,
+      #f6f7f8,
+      #eef0f2
+    );
+
+  box-shadow:
+    inset 0 -1px 0 rgba(0,0,0,.08);
+}
+
+/* ---------- Left: Context ---------- */
+.workspace-left{
+  display:flex;
+  flex-direction:column;
+  line-height:1.1;
+}
+
+.workspace-title{
+  font-size:15px;
+  font-weight:600;
+  color:#1f2328;
+}
+
+.workspace-subtitle{
+  font-size:12px;
+  color:#7a7f85;
+}
+
+/* ---------- Center: Search ---------- */
+.workspace-search{
+  display:flex;
+  justify-content:center;
+}
+
+.workspace-search input{
+  width:100%;
+  max-width:520px;
+
+  padding:8px 12px;
+  border-radius:8px;
+  border:1px solid rgba(0,0,0,.15);
+
+  font-size:14px;
+  background:#ffffff;
+
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.7);
+}
+
+.workspace-search input:focus{
+  outline:none;
+  border-color:#0a6ed1;
+  box-shadow:
+    0 0 0 4px rgba(10,110,209,.15);
+}
+
+/* ---------- Right: Tools ---------- */
+.workspace-tools{
+  display:flex;
+  align-items:center;
+  gap:10px;
+}
+
+.workspace-tools select{
+  height:30px;
+  font-size:13px;
+}
+
+.tool-toggle{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  font-size:13px;
+  color:#2b2e33;
+}
+
+.workspace-tools a{
+  font-size:13px;
+  color:#6b7176;
+  text-decoration:none;
+  padding:6px 8px;
+  border-radius:6px;
+}
+
+.workspace-tools a:hover{
+  background:rgba(0,0,0,.06);
+  color:#2b2e33;
+}
+/* ================================
+   Content Sheet — Workspace Layer
+   ================================ */
+
+.content-sheet{
+  max-width:1240px;
+  margin:16px auto 0;
+
+  padding:18px 18px 28px;
+
+  background:#ffffff;
+  border-radius:14px;
+
+  box-shadow:
+    0 1px 2px rgba(16,24,40,.06),
+    0 12px 28px rgba(16,24,40,.08);
+}
+
+/* адаптация под маленькие экраны */
+@media (max-width:900px){
+  .content-sheet{
+    margin:12px;
+    padding:14px;
+  }
+}
