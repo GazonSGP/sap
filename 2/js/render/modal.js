@@ -9,7 +9,7 @@ import {
 } from '../helpers/mediaDetect.js';
 import { openImageLightbox } from '../ui/lightbox.js';
 
-const ICON_BASE_PATH = '/assets/file-icons/';
+const ICON_BASE_PATH = 'assets/file-icons/';
 
 const EXT_ICON_MAP = {
   pdf: 'pdf.svg',
@@ -263,3 +263,4 @@ function renderMedia(inst) {
 
   show(0);
 }
+
