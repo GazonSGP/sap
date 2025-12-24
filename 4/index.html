@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <title>SAP Инструкции</title>
+
+  <!-- MAIN STYLES -->
+  <link rel="stylesheet" href="css/styles.css" />
+   <link rel="stylesheet" href="css/dockPreview.css" />
+
+</head>
+<body>
+
+<header class="workspace-bar">
+  <div class="workspace-left">
+    <div class="workspace-title">SAP Инструкции</div>
+    <div class="workspace-subtitle">Рабочее пространство</div>
+  </div>
+
+  <div class="workspace-search">
+    <input
+      type="text"
+      placeholder="Поиск инструкций…"
+      id="globalSearch"
+    />
+  </div>
+
+  <div class="workspace-tools">
+    <select id="moduleFilter">
+      <option value="">Все модули</option>
+    </select>
+
+    <label class="tool-toggle">
+      <input type="checkbox" id="toggle3d" />
+      <span>3D</span>
+    </label>
+  </div>
+</header>
+
+<!-- ================= WORKSPACE ================= -->
+<main class="workspace">
+
+  <!-- ===== CENTER: CONTENT ===== -->
+  <section id="workspaceContent" class="workspace-content">
+
+    <!-- Single instruction view -->
+    <div id="singleView" class="single-view">
+      <div class="content-sheet">
+
+        <section id="emptyState" class="card" style="display:none;">
+          <h3>Пока нет ни одной инструкции</h3>
+        </section>
+
+        <section id="instructionsSection" class="list"></section>
+
+      </div>
+    </div>
+
+    <!-- Compare view -->
+    <div id="compareView" class="compare-view" style="display:none;">
+      <div class="compare-pane" id="compareLeft"></div>
+      <div class="compare-pane" id="compareRight"></div>
+    </div>
+
+  </section>
+
+  <!-- ===== RIGHT: ACTIVE DOCK ===== -->
+  <aside id="dock" class="dock dock-right">
+    <!-- active instructions rendered by JS -->
+  </aside>
+
+</main>
+
+<!-- ================= MODAL ================= -->
+<div id="instructionModalBackdrop" class="modal-backdrop"></div>
+
+<!-- ================= IMAGE LIGHTBOX ================= -->
+<div id="imageLightbox" class="image-lightbox" style="display:none;">
+  <div class="image-lightbox-inner">
+    <img id="lightboxImg" />
+  </div>
+</div>
+
+<!-- ================= AI ASSISTANT ================= -->
+<div id="aiAssistant">
+
+  <button id="aiToggle" aria-label="AI помощник">
+    <svg
+      class="ai-helper"
+      viewBox="0 0 64 64"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <circle cx="32" cy="32" r="30" fill="#1677ff"/>
+      <rect x="16" y="16" width="32" height="26" rx="8" fill="#ffffff"/>
+      <rect class="ai-eye left"  x="22" y="25" width="6" height="6" rx="2" fill="#1677ff"/>
+      <rect class="ai-eye right" x="36" y="25" width="6" height="6" rx="2" fill="#1677ff"/>
+      <path
+        d="M24 36 Q32 40 40 36"
+        stroke="#1677ff"
+        stroke-width="2"
+        fill="none"
+        stroke-linecap="round"
+      />
+      <circle class="ai-core" cx="32" cy="46" r="4" fill="#ff8a00"/>
+    </svg>
+  </button>
+
+  <div id="aiPanel">
+
+    <div class="ai-header">
+      <div class="ai-header-title">AI помощник</div>
+      <div class="ai-header-actions">
+        <button id="aiClose" type="button">×</button>
+      </div>
+    </div>
+
+    <div id="aiMessages"></div>
+
+    <div class="ai-input">
+      <input
+        id="aiInput"
+        placeholder="Опиши проблему или процесс…"
+        autocomplete="off"
+      />
+      <button id="aiSend">➤</button>
+    </div>
+
+  </div>
+</div>
+
+<script type="module" src="js/app.js"></script>
+<script type="module" src="js/ui/dockController.js"></script>
+</body>
+</html>

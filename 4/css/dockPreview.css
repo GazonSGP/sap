@@ -1,0 +1,161 @@
+/* =================================================
+   DOCK PREVIEW (RIGHT PANEL) — FINAL
+   ================================================= */
+
+/*
+  Назначение файла:
+  — визуальные превью активной инструкции
+  — floating overlay рядом с dock
+  — НЕ зависит от history
+  — безопасен, если preview не используется
+*/
+
+/* ===== FLOATING CONTAINER ===== */
+.dock-floating{
+  position: fixed;
+  z-index: 20000;
+
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+
+  pointer-events: none;
+
+  transform: translateX(0);
+  transition:
+    transform .18s cubic-bezier(.2,.8,.2,1),
+    opacity .18s ease;
+
+  opacity: 0;
+}
+
+/* активное состояние */
+.dock-floating.is-visible{
+  opacity: 1;
+}
+
+/* ===== PREVIEW CARD ===== */
+.dock-preview-card{
+  width: 280px;
+
+  background: #ffffff;
+  border-radius: 14px;
+  padding: 12px 14px;
+
+  box-shadow:
+    0 12px 28px rgba(16,24,40,.18);
+
+  display: flex;
+  flex-direction: column;
+}
+
+/* ===== MODULE PILL ===== */
+.dock-preview-pill{
+  display: inline-flex;
+  align-self: flex-start;
+
+  padding: 4px 10px;
+  border-radius: 999px;
+
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
+
+  background: var(--module-color, #0a6ed1);
+  color: #ffffff;
+
+  margin-bottom: 8px;
+}
+
+/* ===== TITLE ===== */
+.dock-preview-title{
+  font-size: 15px;
+  font-weight: 600;
+  color: #1f2328;
+
+  margin: 2px 0 8px;
+}
+
+/* ===== CONTENT ===== */
+.dock-preview-content{
+  font-size: 13px;
+  color: #6b7176;
+  line-height: 1.45;
+
+  max-height: 120px;
+  overflow: hidden;
+}
+
+/* ===== SUBTLE ANIMATION ===== */
+.dock-preview-card{
+  transform: translateY(6px) scale(.98);
+  transition:
+    transform .18s cubic-bezier(.2,.8,.2,1),
+    box-shadow .18s ease;
+}
+
+.dock-floating.is-visible .dock-preview-card{
+  transform: translateY(0) scale(1);
+}
+
+/* ===== SAFETY ===== */
+/* файл не влияет на layout без JS */
+/* ================= DOCK GRID ================= */
+
+.dock{
+  padding: 12px;
+}
+
+/* сетка карточек */
+.dock-grid{
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+
+/* маленькая карточка */
+.dock-card{
+  background: #fff;
+  border-radius: 10px;
+  padding: 8px;
+
+  cursor: pointer;
+
+  box-shadow:
+    0 4px 12px rgba(0,0,0,.12);
+
+  border-left: 4px solid var(--module-color, #0a6ed1);
+
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+
+  transition:
+    transform .15s ease,
+    box-shadow .15s ease;
+}
+
+.dock-card:hover{
+  transform: translateY(-2px);
+  box-shadow:
+    0 8px 20px rgba(0,0,0,.18);
+}
+
+/* активная */
+.dock-card.is-active{
+  outline: 2px solid var(--module-color, #0a6ed1);
+}
+
+/* заголовок */
+.dock-card-title{
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+/* шаги */
+.dock-card-steps{
+  font-size: 11px;
+  color: #6b7176;
+  line-height: 1.3;
+}
