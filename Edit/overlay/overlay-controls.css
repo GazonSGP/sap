@@ -1,0 +1,87 @@
+/* =========================================================
+   OVERLAY CONTROLS — FINAL FINAL
+========================================================= */
+
+/* ================= HIDE LEGACY BUTTONS ================= */
+
+/* Экспорт / импорт (старые кнопки) */
+.overlay-export-btn,
+.overlay-import-btn {
+  display: none !important;
+}
+
+/* ================= TOGGLE ================= */
+
+.overlay-toggle {
+  position: relative;
+  width: 42px;
+  height: 22px;
+  display: inline-block;
+}
+
+.overlay-toggle input {
+  display: none;
+}
+
+.overlay-toggle span {
+  position: absolute;
+  inset: 0;
+  background: var(--border);
+  border-radius: 999px;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.overlay-toggle span::before {
+  content: "";
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  left: 2px;
+  top: 2px;
+  background: var(--card-bg);
+  border-radius: 50%;
+  transition: 0.2s;
+}
+
+.overlay-toggle input:checked + span {
+  background: var(--accent);
+}
+
+.overlay-toggle input:checked + span::before {
+  transform: translateX(20px);
+}
+
+/* ================= ACTION MENU ================= */
+
+.overlay-menu-wrap {
+  position: relative;
+}
+
+.overlay-menu {
+  position: absolute;
+  right: 0;
+  top: 36px;
+  min-width: 220px;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: var(--shadow-soft);
+  display: none;
+  z-index: 1000;
+}
+
+.overlay-menu.open {
+  display: block;
+}
+
+.overlay-menu div {
+  padding: 10px 14px;
+  cursor: pointer;
+  color: var(--text);
+  user-select: none;
+}
+
+.overlay-menu div:hover {
+  background: var(--hover-bg);
+}

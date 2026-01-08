@@ -1,0 +1,147 @@
+/* =========================================================
+   OVERLAY LINKS — FINAL SMOOTH VERSION
+========================================================= */
+
+.overlay-direction {
+  position: fixed;
+  top: calc(var(--header-height, 64px) + 16px);
+  left: 16px;
+  z-index: 20;
+}
+
+.overlay-direction ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  perspective: 1000px;
+}
+
+.overlay-direction li {
+  margin-bottom: 18px;
+}
+
+/* ---------- DIRECTION ZONES ---------- */
+
+.dir-link {
+  position: relative;
+  width: 96px;
+  height: 96px;
+  pointer-events: none;
+}
+
+.dir-link a {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  transform: translateZ(24px);
+  pointer-events: all;
+  z-index: 2;
+}
+
+/* top / right / bottom / left */
+.dir-link a:nth-child(1) {
+  top: 0;
+  left: 0;
+  height: 50%;
+}
+.dir-link a:nth-child(2) {
+  top: 0;
+  right: 0;
+  width: 50%;
+}
+.dir-link a:nth-child(3) {
+  bottom: 0;
+  left: 0;
+  height: 50%;
+}
+.dir-link a:nth-child(4) {
+  top: 0;
+  left: 0;
+  width: 50%;
+}
+
+/* ---------- ROTATION (360°, SMOOTH) ---------- */
+
+.dir-link a:nth-child(1):hover ~ .cube {
+  transform: rotateX(-0.5turn);
+}
+.dir-link a:nth-child(2):hover ~ .cube {
+  transform: rotateY(-0.5turn);
+}
+.dir-link a:nth-child(3):hover ~ .cube {
+  transform: rotateX(0.5turn);
+}
+.dir-link a:nth-child(4):hover ~ .cube {
+  transform: rotateY(0.5turn);
+}
+
+/* ---------- CUBE ---------- */
+
+.cube {
+  position: relative;
+  width: 96px;
+  height: 96px;
+  transform-style: preserve-3d;
+  transform-origin: 48px 48px -48px;
+  transition: transform 620ms cubic-bezier(0.19, 1, 0.22, 1);
+  will-change: transform;
+}
+
+.cube > div {
+  position: absolute;
+  inset: 0;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  box-shadow: var(--shadow-soft);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  color: var(--text);
+  backface-visibility: hidden;
+}
+
+/* ---------- FACES ---------- */
+
+.cube > div:nth-child(1) {
+  transform: rotateX(90deg) translateY(-96px);
+  transform-origin: top;
+}
+.cube > div:nth-child(2) {
+  transform: rotateX(-90deg) translateY(96px);
+  transform-origin: bottom;
+}
+.cube > div:nth-child(3) {
+  transform: rotateY(-90deg) translateX(-96px);
+  transform-origin: left;
+}
+.cube > div:nth-child(4) {
+  transform: rotateY(90deg) translateX(96px);
+  transform-origin: right;
+}
+.cube > div.face-front {
+  transform: rotateX(0deg);
+}
+.cube > div.face-back {
+  transform: rotateY(180deg) translateZ(96px);
+}
+
+/* ---------- ICONS ---------- */
+
+.face-front svg {
+  width: 28px;
+  height: 28px;
+  fill: currentColor;
+  margin-bottom: 6px;
+}
+
+.face-front span {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.face-back {
+  font-size: 12px;
+  opacity: 0.75;
+}
