@@ -10,13 +10,13 @@
     {
       title: "GitHub",
       subtitle: "Profile",
-      url: "https://github.com/example",
+      url: "https://github.com/GazonSGP/sap",
       type: "github",
     },
     {
       title: "Repository",
       subtitle: "Project",
-      url: "https://github.com/example/project",
+      url: "https://gazonsgp.github.io/sap/Edit/",
       type: "repo",
     },
   ];
@@ -80,3 +80,4 @@
 
   setInterval(init, 300);
 })();
+
