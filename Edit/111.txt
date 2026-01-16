@@ -1,4 +1,0 @@
-localStorage.removeItem('overlay_instructions');
-localStorage.removeItem('overlay_modules');
-location.reload();
-npm start
